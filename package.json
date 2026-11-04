@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "start": "python -m http.server 8000",
-    "dev": "python -m http.server 8000"
+    "dev": "python -m http.server 8000",
+    "test": "node tests/test-runner.js",
+    "test:syntax": "node --check app.js && node --check canvas-engine.js && node --check furniture-library.js && node --check three-engine.js"
   },
   "dependencies": {
     "three": "^0.160.0"

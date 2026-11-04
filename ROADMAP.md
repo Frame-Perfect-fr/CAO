@@ -62,13 +62,16 @@ Toutes les fonctionnalités de la Phase 1 sont entièrement implémentées et op
 
 Des fonctionnalités intelligentes accélérant le traçage et garantissant la conformité réglementaire.
 
-### 2.1 Générateur Automatique de Rangées de Chaises (Parterre / Conférence)
-* **Concept** : Disposer des centaines de sièges en quelques clics sans placement manuel unitaire.
-* **Fonctionnalités** :
-  * Sélection d'une zone rectangulaire ou trapézoïdale.
-  * Paramétrage du nombre de places, de l'espacement inter-sièges (0,50 m) et de l'intervalle entre rangées (0,90 m à 1,20 m).
-  * Création automatique des **allées de circulation et d'évacuation de sécurité** (1,40 m / 2 UP).
-  * Numérotation automatique des sièges (Rangée A Siège 1, 2, 3...).
+### 2.1 Générateur Automatique de Rangées de Chaises (Parterre / Conférence) ✅
+* **Statut** : **Livré**
+* **Fonctionnalités livrées** :
+  * Bouton dédié **Parterre Chaises** dans la barre supérieure et barre d'outils 2D (raccourci `Alt+C`).
+  * Paramétrage complet : nombre de rangées, sièges par rangée, espacement inter-sièges et profondeur entre rangées.
+  * Création automatique de l'**allée centrale de circulation / évacuation** conforme ERP (1,40 m / 2 UP).
+  * **Numérotation automatique** des rangées et des sièges (Rangée A Siège 1, 2, 3...).
+  * **Calcul de jauge et métriques en temps réel** (nombre de places, dimensions totales, surface occupée, conformité ERP).
+  * Annulation intégrale du parterre en 1 seul `Ctrl+Z` (Undo atomique).
+  * Synchronisation 2D et 3D temps réel instantanée.
 
 ### 2.2 Accrochage aux Ponts de Scène (Truss Rigging)
 * **Concept** : Fixer des projecteurs, enceintes line-array et écrans directement sous les structures en hauteur.
@@ -90,14 +93,15 @@ Des fonctionnalités intelligentes accélérant le traçage et garantissant la c
 
 Faciliter la transmission du dossier technique aux équipes de montage, loueurs et régisseurs.
 
-### 3.1 Nomenclature & Bon de Commande Matériel Automatique (BOM)
-* **Concept** : Générer instantanément l'inventaire quantitatif du matériel posé.
-* **Détails exportés** :
-  * Nombre de tables (rectangulaires 6p/8p, rondes, mange-debout) avec leurs noms.
-  * Nombre total de chaises, fauteuils et canapés.
-  * Linéaire de barrières Vauban, Heras et cloisons modulaires.
-  * Équipements audiovisuels (lyres, PAR, poursuites, PC régie, écrans).
-  * Export direct aux formats **PDF technique récapitulatif** et tableau **Excel / CSV**.
+### 3.1 Nomenclature & Bon de Commande Matériel Automatique (BOM) ✅
+* **Statut** : **Livré**
+* **Fonctionnalités livrées** :
+  * Bouton dédié **Nomenclature (BOM)** dans la barre supérieure et barre d'outils 2D (raccourci `Alt+B`).
+  * Modal d'inventaire complet avec métriques clés : nombre total d'équipements, places assises totales, linéaire de cloisons/barrières, emprise au sol du mobilier et surface libre.
+  * Tableau technique exhaustif classé par catégories (Assises, Tables, Scène & Structures, Audiovisuel & Énergie, Cloisons & Sécurité, Décoration, Personnel).
+  * Recherche textuelle live et boutons de filtre par corps de métier.
+  * **Export direct CSV / Excel** avec encodage UTF-8 BOM pour une ouverture immédiate sans souci d'accentuation.
+  * **Fiche Technique Récapitulative imprimable / PDF** avec en-tête de projet, récapitulatif quantitatif et blocs d'émargement / signatures (Régie Générale et Prestataire/Loueur).
 
 ### 3.2 Gestion des Hauteurs Sous Plafond & Détection de Collisions
 * **Concept** : Prévenir les erreurs de gabarit avant l'arrivée sur site.
@@ -109,9 +113,13 @@ Faciliter la transmission du dossier technique aux équipes de montage, loueurs 
 
 ## 🌐 Phase 4 : Interopérabilité & Écosystème 3D
 
-### 4.1 Export 3D Universel (glTF / GLB / OBJ)
-* **Concept** : Permettre d'exporter la maquette numérique 3D complète.
-* **Bénéfice** : Ouvrir et peaufiner les scènes directement dans **Blender**, **Cinema 4D**, **SketchUp** ou des moteurs temps réel (**Unreal Engine**, **Unity**).
+### 4.1 Export 3D Universel (glTF / GLB / OBJ) ✅
+* **Statut** : **Livré**
+* **Fonctionnalités livrées** :
+  * Bouton dédié **GLB 3D** dans la barre supérieure et bouton **Export GLB** dans la barre d'outils 3D flottante.
+  * Génération binaire universelle **GLB (glTF 2.0)** autonome et compacte incluant géométries, matières PBR et textures.
+  * Compatibilité certifiée avec **Blender**, **Cinema 4D**, **SketchUp**, **Unreal Engine**, **Unity**, Windows 3D Viewer et Apple QuickLook.
+  * Export de secours au format géométrique Wavefront OBJ.
 
 ### 4.2 Import de Fonds de Plan Architecturaux (DXF / DWG / SVG)
 * **Concept** : Importer le plan de masse officiel de la salle ou du parc des expositions en arrière-plan avec calibrage d'échelle métrique.
