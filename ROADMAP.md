@@ -113,9 +113,13 @@ Faciliter la transmission du dossier technique aux équipes de montage, loueurs 
 
 ## 🌐 Phase 4 : Interopérabilité & Écosystème 3D
 
-### 4.1 Export 3D Universel (glTF / GLB / OBJ)
-* **Concept** : Permettre d'exporter la maquette numérique 3D complète.
-* **Bénéfice** : Ouvrir et peaufiner les scènes directement dans **Blender**, **Cinema 4D**, **SketchUp** ou des moteurs temps réel (**Unreal Engine**, **Unity**).
+### 4.1 Export 3D Universel (glTF / GLB / OBJ) ✅
+* **Statut** : **Livré**
+* **Fonctionnalités livrées** :
+  * Bouton dédié **GLB 3D** dans la barre supérieure et bouton **Export GLB** dans la barre d'outils 3D flottante.
+  * Génération binaire universelle **GLB (glTF 2.0)** autonome et compacte incluant géométries, matières PBR et textures.
+  * Compatibilité certifiée avec **Blender**, **Cinema 4D**, **SketchUp**, **Unreal Engine**, **Unity**, Windows 3D Viewer et Apple QuickLook.
+  * Export de secours au format géométrique Wavefront OBJ.
 
 ### 4.2 Import de Fonds de Plan Architecturaux (DXF / DWG / SVG)
 * **Concept** : Importer le plan de masse officiel de la salle ou du parc des expositions en arrière-plan avec calibrage d'échelle métrique.

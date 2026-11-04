@@ -372,6 +372,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-export-png').addEventListener('click', () => engine.exportPNG());
     document.getElementById('btn-export-pdf').addEventListener('click', () => engine.exportPDF());
 
+    const btnExportGlb = document.getElementById('btn-export-glb');
+    if (btnExportGlb) {
+        btnExportGlb.addEventListener('click', () => {
+            if (threeEngine) {
+                threeEngine.syncFrom2D(engine);
+                threeEngine.exportGLB();
+            } else {
+                alert("Le moteur 3D est en cours de chargement. Veuillez patienter un instant.");
+            }
+        });
+    }
+
     // Theme toggle
     document.getElementById('btn-theme').addEventListener('click', () => {
         const body = document.body;
@@ -559,6 +571,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 threeEngine = new window.ThreeEngine('three-container');
                 window.sceno3D = threeEngine;
                 setupThreeToolbar();
+                if (engine) {
+                    threeEngine.syncFrom2D(engine);
+                }
             } catch (err) {
                 console.error('Erreur initialisation ThreeEngine:', err);
             }
@@ -568,7 +583,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.ThreeEngine) {
         initThreeEngine();
     } else {
-        window.addEventListener('three-engine-ready', initThreeEngine);
+        window.addEventListener('three-engine-ready', () => {
+            initThreeEngine();
+            if (threeEngine && (currentViewMode === '3d' || currentViewMode === 'split')) {
+                threeEngine.onWindowResize();
+                threeEngine.syncFrom2D(engine);
+                requestAnimationFrame(() => threeEngine.onWindowResize());
+            }
+        });
     }
 
     const mode2dBtn = document.getElementById('mode-2d');
@@ -602,6 +624,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (threeEngine) {
                 threeEngine.onWindowResize();
                 threeEngine.syncFrom2D(engine);
+                requestAnimationFrame(() => {
+                    if (threeEngine) threeEngine.onWindowResize();
+                });
+                setTimeout(() => {
+                    if (threeEngine) threeEngine.onWindowResize();
+                }, 60);
             }
         } else if (mode === '3d') {
             if (mode3dBtn) mode3dBtn.classList.add('active');
@@ -620,6 +648,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (threeEngine) {
                 threeEngine.onWindowResize();
                 threeEngine.syncFrom2D(engine);
+                requestAnimationFrame(() => {
+                    if (threeEngine) threeEngine.onWindowResize();
+                });
+                setTimeout(() => {
+                    if (threeEngine) threeEngine.onWindowResize();
+                }, 60);
             }
         } else {
             // Plan 2D
@@ -718,6 +752,16 @@ document.addEventListener('DOMContentLoaded', () => {
             screenshotBtn.addEventListener('click', () => {
                 if (threeEngine) {
                     threeEngine.takeScreenshot();
+                }
+            });
+        }
+
+        // 3D GLB Export
+        const exportGlbBtn = document.getElementById('btn-three-export-glb');
+        if (exportGlbBtn) {
+            exportGlbBtn.addEventListener('click', () => {
+                if (threeEngine) {
+                    threeEngine.exportGLB();
                 }
             });
         }

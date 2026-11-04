@@ -74,7 +74,9 @@ describe('Intégrité du DOM HTML & Concordance des Sélecteurs', () => {
             'btn-export-bom-csv',
             'btn-print-bom',
             'bom-search',
-            'bom-tbody'
+            'bom-tbody',
+            'btn-export-glb',
+            'btn-three-export-glb'
         ];
         requiredIds.forEach(id => {
             assert.ok(html.includes(`id="${id}"`), `L ID requis #${id} doit être présent dans index.html`);

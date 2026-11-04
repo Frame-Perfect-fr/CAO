@@ -218,4 +218,16 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
             assert.strictEqual(bomModal.style.display, 'none', 'Modal BOM doit être fermé');
         }, 'L interaction avec la nomenclature BOM ne doit pas lever d exception');
     });
+
+    test('Boutons d export 3D (GLB) configurés', () => {
+        const btnExportGlb = doc.getElementById('btn-export-glb');
+        const btnThreeGlb = doc.getElementById('btn-three-export-glb');
+        assert.ok(btnExportGlb, 'Bouton export GLB barre supérieure présent');
+        assert.ok(btnThreeGlb, 'Bouton export GLB barre 3D présent');
+
+        assert.doesNotThrow(() => {
+            btnExportGlb.dispatchEvent({ type: 'click' });
+            btnThreeGlb.dispatchEvent({ type: 'click' });
+        }, 'Le clic sur export GLB ne doit pas lever d exception');
+    });
 });

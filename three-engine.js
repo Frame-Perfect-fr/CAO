@@ -886,7 +886,7 @@ export class ThreeEngine {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
-                child.userData = { element: el, rootGroup: group };
+                child.userData = { element: el };
             }
         });
 
@@ -3143,6 +3143,98 @@ export class ThreeEngine {
         link.download = `scenoplan-3d-${Date.now()}.png`;
         link.href = dataUrl;
         link.click();
+    }
+
+    /**
+     * Export universel de la maquette 3D complète au format standard GLB (binaire glTF).
+     * Compatible avec Blender, SketchUp, Cinema 4D, Unreal Engine, Unity et visualiseurs 3D web.
+     */
+    async exportGLB(filename) {
+        if (!this.scene) return;
+        try {
+            const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js');
+            const exporter = new GLTFExporter();
+
+            // Export de la maquette (sol scène, zones, cloisons, mobilier)
+            const exportScene = new THREE.Scene();
+            exportScene.name = 'ScenoPlan_Export';
+
+            if (this.stageFloorGroup) exportScene.add(this.stageFloorGroup.clone(true));
+            if (this.zoneGroup) exportScene.add(this.zoneGroup.clone(true));
+            if (this.wallGroup) exportScene.add(this.wallGroup.clone(true));
+            if (this.furnitureGroup) exportScene.add(this.furnitureGroup.clone(true));
+
+            const options = {
+                binary: true,
+                embedImages: true,
+                onlyVisible: true
+            };
+
+            const rawName = filename || (document.getElementById('project-name')?.value || 'ScenoPlan_3D');
+            const cleanName = rawName.trim().replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_') || 'ScenoPlan_3D';
+            const finalFilename = cleanName.endsWith('.glb') ? cleanName : `${cleanName}.glb`;
+
+            exporter.parse(
+                exportScene,
+                (glbArrayBuffer) => {
+                    const blob = new Blob([glbArrayBuffer], { type: 'model/gltf-binary' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = finalFilename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 1500);
+                    console.log(`%c📦 Maquette 3D universelle GLB exportée : ${finalFilename} (${(blob.size / (1024 * 1024)).toFixed(2)} Mo)`, 'color: #4cd964; font-weight: bold;');
+                },
+                (error) => {
+                    console.error('Erreur lors de l\'exportation GLB:', error);
+                    alert('Erreur lors de l\'exportation 3D : ' + error.message);
+                },
+                options
+            );
+        } catch (err) {
+            console.error('Erreur chargement exporteur GLB:', err);
+            alert('Impossible de charger l\'exportateur 3D : ' + err.message);
+        }
+    }
+
+    /**
+     * Export de secours au format géométrique Wavefront OBJ.
+     */
+    async exportOBJ(filename) {
+        if (!this.scene) return;
+        try {
+            const { OBJExporter } = await import('three/addons/exporters/OBJExporter.js');
+            const exporter = new OBJExporter();
+
+            const exportScene = new THREE.Scene();
+            exportScene.name = 'ScenoPlan_Export';
+
+            if (this.stageFloorGroup) exportScene.add(this.stageFloorGroup.clone(true));
+            if (this.zoneGroup) exportScene.add(this.zoneGroup.clone(true));
+            if (this.wallGroup) exportScene.add(this.wallGroup.clone(true));
+            if (this.furnitureGroup) exportScene.add(this.furnitureGroup.clone(true));
+
+            const rawName = filename || (document.getElementById('project-name')?.value || 'ScenoPlan_3D');
+            const cleanName = rawName.trim().replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_') || 'ScenoPlan_3D';
+            const finalFilename = cleanName.endsWith('.obj') ? cleanName : `${cleanName}.obj`;
+
+            const result = exporter.parse(exportScene);
+            const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = finalFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+        } catch (err) {
+            console.error('Erreur chargement exporteur OBJ:', err);
+            alert('Impossible de charger l\'exportateur OBJ : ' + err.message);
+        }
     }
 
     // ─── Render Loop ────────────────────────────────────────────────

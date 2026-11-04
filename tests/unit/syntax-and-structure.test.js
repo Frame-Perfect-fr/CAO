@@ -14,7 +14,10 @@ describe('Syntaxe & Intégrité des Fichiers', () => {
             'furniture-library.js',
             'three-engine.js',
             'package.json',
-            'favicon.svg'
+            'favicon.svg',
+            'lib/exporters/GLTFExporter.js',
+            'lib/exporters/OBJExporter.js',
+            'lib/utils/TextureUtils.js'
         ];
         requiredFiles.forEach(file => {
             const p = path.join(rootDir, file);
