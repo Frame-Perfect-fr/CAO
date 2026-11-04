@@ -62,13 +62,16 @@ Toutes les fonctionnalités de la Phase 1 sont entièrement implémentées et op
 
 Des fonctionnalités intelligentes accélérant le traçage et garantissant la conformité réglementaire.
 
-### 2.1 Générateur Automatique de Rangées de Chaises (Parterre / Conférence)
-* **Concept** : Disposer des centaines de sièges en quelques clics sans placement manuel unitaire.
-* **Fonctionnalités** :
-  * Sélection d'une zone rectangulaire ou trapézoïdale.
-  * Paramétrage du nombre de places, de l'espacement inter-sièges (0,50 m) et de l'intervalle entre rangées (0,90 m à 1,20 m).
-  * Création automatique des **allées de circulation et d'évacuation de sécurité** (1,40 m / 2 UP).
-  * Numérotation automatique des sièges (Rangée A Siège 1, 2, 3...).
+### 2.1 Générateur Automatique de Rangées de Chaises (Parterre / Conférence) ✅
+* **Statut** : **Livré**
+* **Fonctionnalités livrées** :
+  * Bouton dédié **Parterre Chaises** dans la barre supérieure et barre d'outils 2D (raccourci `Alt+C`).
+  * Paramétrage complet : nombre de rangées, sièges par rangée, espacement inter-sièges et profondeur entre rangées.
+  * Création automatique de l'**allée centrale de circulation / évacuation** conforme ERP (1,40 m / 2 UP).
+  * **Numérotation automatique** des rangées et des sièges (Rangée A Siège 1, 2, 3...).
+  * **Calcul de jauge et métriques en temps réel** (nombre de places, dimensions totales, surface occupée, conformité ERP).
+  * Annulation intégrale du parterre en 1 seul `Ctrl+Z` (Undo atomique).
+  * Synchronisation 2D et 3D temps réel instantanée.
 
 ### 2.2 Accrochage aux Ponts de Scène (Truss Rigging)
 * **Concept** : Fixer des projecteurs, enceintes line-array et écrans directement sous les structures en hauteur.
