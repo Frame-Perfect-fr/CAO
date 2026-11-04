@@ -890,6 +890,111 @@ class CanvasEngine {
         this.notifyElementsChange();
     }
 
+    /**
+     * Générateur automatique de rangées de chaises (Parterre / Conférence)
+     * Normes de sécurité ERP, allée centrale de circulation et numérotation.
+     */
+    generateChairBlock(options = {}) {
+        const rows = Math.max(1, parseInt(options.rows, 10) || 8);
+        const seatsPerRow = Math.max(1, parseInt(options.seatsPerRow, 10) || 12);
+        const gapX = options.gapX !== undefined ? parseFloat(options.gapX) : 0.08; // 8cm entre chaises
+        const rowSpacing = options.rowSpacing !== undefined ? parseFloat(options.rowSpacing) : 0.95; // 95cm entre rangées
+        const hasAisle = options.hasAisle !== false;
+        const aisleWidth = hasAisle ? (options.aisleWidth !== undefined ? parseFloat(options.aisleWidth) : 1.40) : 0; // 1.40m = 2 UP ERP
+        const numberSeats = options.numberSeats !== false;
+        const color = options.color || '#4A607A';
+        const rotation = options.rotation !== undefined ? parseInt(options.rotation, 10) : 180; // 180° = face à la scène en haut
+
+        const chairW = 0.45;
+        const chairH = 0.45;
+
+        // Calcul des blocs et dimensions
+        const half1 = hasAisle ? Math.ceil(seatsPerRow / 2) : seatsPerRow;
+        const half2 = hasAisle ? (seatsPerRow - half1) : 0;
+        
+        let totalW = seatsPerRow * chairW + (seatsPerRow - 1) * gapX;
+        if (hasAisle && seatsPerRow > 1) {
+            totalW += aisleWidth;
+        }
+        const totalH = (rows - 1) * rowSpacing + chairH;
+
+        // Position d'ancrage (centre de la vue ou coordonnées spécifiées)
+        let cx = options.originX;
+        let cy = options.originY;
+        if (cx === undefined || cy === undefined) {
+            const center = this.screenToScene(this.canvas.width / 2, this.canvas.height / 2);
+            cx = center.x;
+            cy = center.y;
+        }
+
+        const startX = cx - totalW / 2;
+        const startY = cy - totalH / 2;
+
+        const newChairs = [];
+
+        // Helper pour lettrage de rangée (A..Z, AA..ZZ)
+        const getRowLetter = (idx) => {
+            if (idx < 26) return String.fromCharCode(65 + idx);
+            const first = String.fromCharCode(65 + Math.floor(idx / 26) - 1);
+            const second = String.fromCharCode(65 + (idx % 26));
+            return first + second;
+        };
+
+        for (let r = 0; r < rows; r++) {
+            const rowLetter = getRowLetter(r);
+            const rowY = startY + r * rowSpacing;
+
+            for (let s = 0; s < seatsPerRow; s++) {
+                let seatX = startX + s * (chairW + gapX);
+                if (hasAisle && s >= half1) {
+                    seatX += aisleWidth;
+                }
+
+                const seatNum = s + 1;
+                const chairName = numberSeats ? `${rowLetter}-${seatNum}` : 'Chaise';
+
+                const chairElement = {
+                    id: 'chair',
+                    name: chairName,
+                    category: 'chairs',
+                    shape: 'chair',
+                    width: chairW,
+                    height: chairH,
+                    x: seatX,
+                    y: rowY,
+                    rotation: rotation,
+                    color: color,
+                    opacity: 1,
+                    locked: false,
+                    uid: this._nextId++,
+                    row: rowLetter,
+                    seatIndex: seatNum
+                };
+
+                newChairs.push(chairElement);
+            }
+        }
+
+        // Enregistre 1 seul état d'Undo pour tout le parterre
+        this.saveUndoState();
+
+        // Ajoute toutes les chaises au plan
+        this.elements.push(...newChairs);
+
+        this.selectElement(newChairs[0] || null);
+        this.render();
+        this.notifyElementsChange();
+
+        return {
+            totalChairs: newChairs.length,
+            rows,
+            seatsPerRow,
+            totalWidth: totalW,
+            totalHeight: totalH,
+            elements: newChairs
+        };
+    }
+
     // ─── Undo / Redo ───────────────────────────────────────────────
 
     saveUndoState() {
