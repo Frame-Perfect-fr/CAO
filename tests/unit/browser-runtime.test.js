@@ -49,6 +49,7 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
             },
             removeEventListener() {},
             dispatchEvent(e) {
+                if (!e.target) e.target = this;
                 if (this._listeners[e.type]) {
                     this._listeners[e.type].forEach(cb => cb(e));
                 }
@@ -192,5 +193,29 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
         assert.doesNotThrow(() => {
             btnGenerate.dispatchEvent({ type: 'click' });
         }, 'Le clic sur générer parterre ne doit pas lever d exception');
+    });
+
+    test('Ouverture, filtrage et fermeture du Modal Nomenclature (BOM)', () => {
+        const btnBom = doc.getElementById('btn-bom-inventory');
+        const btnClose = doc.getElementById('btn-close-bom-modal');
+        const bomModal = doc.getElementById('bom-modal');
+
+        assert.ok(btnBom, 'Bouton nomenclature BOM présent');
+        assert.ok(btnClose, 'Bouton fermeture BOM présent');
+        assert.ok(bomModal, 'Modal BOM présent');
+
+        assert.doesNotThrow(() => {
+            btnBom.dispatchEvent({ type: 'click' });
+            assert.strictEqual(bomModal.style.display, 'flex', 'Modal BOM doit être ouvert');
+
+            const searchInput = doc.getElementById('bom-search');
+            if (searchInput) {
+                searchInput.value = 'Chaise';
+                searchInput.dispatchEvent({ type: 'input' });
+            }
+
+            btnClose.dispatchEvent({ type: 'click' });
+            assert.strictEqual(bomModal.style.display, 'none', 'Modal BOM doit être fermé');
+        }, 'L interaction avec la nomenclature BOM ne doit pas lever d exception');
     });
 });

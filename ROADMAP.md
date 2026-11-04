@@ -93,14 +93,15 @@ Des fonctionnalités intelligentes accélérant le traçage et garantissant la c
 
 Faciliter la transmission du dossier technique aux équipes de montage, loueurs et régisseurs.
 
-### 3.1 Nomenclature & Bon de Commande Matériel Automatique (BOM)
-* **Concept** : Générer instantanément l'inventaire quantitatif du matériel posé.
-* **Détails exportés** :
-  * Nombre de tables (rectangulaires 6p/8p, rondes, mange-debout) avec leurs noms.
-  * Nombre total de chaises, fauteuils et canapés.
-  * Linéaire de barrières Vauban, Heras et cloisons modulaires.
-  * Équipements audiovisuels (lyres, PAR, poursuites, PC régie, écrans).
-  * Export direct aux formats **PDF technique récapitulatif** et tableau **Excel / CSV**.
+### 3.1 Nomenclature & Bon de Commande Matériel Automatique (BOM) ✅
+* **Statut** : **Livré**
+* **Fonctionnalités livrées** :
+  * Bouton dédié **Nomenclature (BOM)** dans la barre supérieure et barre d'outils 2D (raccourci `Alt+B`).
+  * Modal d'inventaire complet avec métriques clés : nombre total d'équipements, places assises totales, linéaire de cloisons/barrières, emprise au sol du mobilier et surface libre.
+  * Tableau technique exhaustif classé par catégories (Assises, Tables, Scène & Structures, Audiovisuel & Énergie, Cloisons & Sécurité, Décoration, Personnel).
+  * Recherche textuelle live et boutons de filtre par corps de métier.
+  * **Export direct CSV / Excel** avec encodage UTF-8 BOM pour une ouverture immédiate sans souci d'accentuation.
+  * **Fiche Technique Récapitulative imprimable / PDF** avec en-tête de projet, récapitulatif quantitatif et blocs d'émargement / signatures (Régie Générale et Prestataire/Loueur).
 
 ### 3.2 Gestion des Hauteurs Sous Plafond & Détection de Collisions
 * **Concept** : Prévenir les erreurs de gabarit avant l'arrivée sur site.

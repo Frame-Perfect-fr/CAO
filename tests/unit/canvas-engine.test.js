@@ -199,4 +199,44 @@ describe('Moteur Canvas 2D & Logique Métier', () => {
         assert.strictEqual(newInstance.elements.length, 1);
         assert.strictEqual(newInstance.elements[0].name, 'Scène 6x4');
     });
+
+    test('Nomenclature & Inventaire Matériel (getBOMInventory)', () => {
+        const { engine } = createEngineInstance();
+
+        // Add 10 chairs, 2 tables with seats, 1 vauban barrier (2m), 1 light
+        for (let i = 0; i < 10; i++) {
+            engine.addElement({ id: 'chair', name: `A-${i+1}`, category: 'chairs', shape: 'chair', width: 0.45, height: 0.45, color: '#4A607A' }, i, 2);
+        }
+        engine.addElement({ id: 'table-rect-6', name: 'Table 1', category: 'tables', shape: 'rect', width: 2, height: 1, seats: 6, color: '#888888' }, 2, 5);
+        engine.addElement({ id: 'table-rect-6', name: 'Table 2', category: 'tables', shape: 'rect', width: 2, height: 1, seats: 6, color: '#888888' }, 5, 5);
+        engine.addElement({ id: 'barrier-vauban', name: 'Barrière Vauban', category: 'deco', shape: 'barrier', width: 2.5, height: 0.5, isWall: false, color: '#aaaaaa' }, 0, 10);
+        engine.addElement({ id: 'par-stand', name: 'Projecteur PAR', category: 'tech', shape: 'stand', width: 0.8, height: 0.8, color: '#333333' }, 0, 0);
+
+        const bom = engine.getBOMInventory();
+
+        assert.strictEqual(bom.totalItems, 14, '10 chaises + 2 tables + 1 barrière + 1 projecteur = 14');
+        assert.strictEqual(bom.totalSeats, 22, '10 chaises + 2 x 6 places sur tables = 22');
+        assert.strictEqual(bom.totalLinear, 2.5, 'Linéaire barrière = 2.5m');
+        assert.isAbove(bom.totalOccupiedArea, 5, 'Surface occupée positive');
+        assert.isAbove(bom.freeArea, 500, 'Surface libre calculée');
+
+        // Grouped items
+        const chairGroup = bom.items.find(i => i.id === 'chair');
+        assert.ok(chairGroup, 'Groupe de chaises présent');
+        assert.strictEqual(chairGroup.count, 10);
+
+        const tableGroup = bom.items.find(i => i.id === 'table-rect-6');
+        assert.ok(tableGroup, 'Groupe de tables présent');
+        assert.strictEqual(tableGroup.count, 2);
+    });
+
+    test('Export CSV de la Nomenclature avec encodage UTF-8 BOM', () => {
+        const { engine } = createEngineInstance();
+        engine.addElement({ id: 'chair', name: 'Chaise VIP', category: 'chairs', shape: 'chair', width: 0.45, height: 0.45, color: '#4A607A' }, 2, 2);
+
+        const csv = engine.exportBOMCSV();
+        assert.ok(csv.startsWith('\uFEFF'), 'Doit démarrer par le BOM UTF-8 pour Excel');
+        assert.ok(csv.includes('Nomenclature Matériel'), 'En-tête présent');
+        assert.ok(csv.includes('Chaise VIP') || csv.includes('chair'), 'Élément listé dans le CSV');
+    });
 });

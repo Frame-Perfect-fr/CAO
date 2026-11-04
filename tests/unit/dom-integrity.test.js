@@ -66,7 +66,15 @@ describe('Intégrité du DOM HTML & Concordance des Sélecteurs', () => {
             'cg-seats',
             'cg-has-aisle',
             'cg-aisle-width',
-            'btn-generate-chairs'
+            'btn-generate-chairs',
+            'bom-modal',
+            'btn-bom-inventory',
+            'tool-bom-inventory',
+            'btn-close-bom-modal',
+            'btn-export-bom-csv',
+            'btn-print-bom',
+            'bom-search',
+            'bom-tbody'
         ];
         requiredIds.forEach(id => {
             assert.ok(html.includes(`id="${id}"`), `L ID requis #${id} doit être présent dans index.html`);
