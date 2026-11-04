@@ -941,54 +941,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('stat-elements').textContent = engine.elements.length.toString();
     document.getElementById('stat-surface').textContent = `${(engine.sceneWidth * engine.sceneHeight).toFixed(0)} m²`;
 
-    // Store engine globally for debugging
-    // ─── Roadmap Modal Management ──────────────────────────────────
-    const roadmapModal = document.getElementById('roadmap-modal');
-    const btnRoadmap = document.getElementById('btn-roadmap');
-    const btnCloseRoadmap = document.getElementById('btn-close-roadmap');
-    const btnCloseRoadmapFooter = document.getElementById('btn-close-roadmap-footer');
-
-    function openRoadmap() {
-        if (roadmapModal) roadmapModal.style.display = 'flex';
-    }
-
-    function closeRoadmap() {
-        if (roadmapModal) roadmapModal.style.display = 'none';
-    }
-
-    if (btnRoadmap) btnRoadmap.addEventListener('click', openRoadmap);
-    if (btnCloseRoadmap) btnCloseRoadmap.addEventListener('click', closeRoadmap);
-    if (btnCloseRoadmapFooter) btnCloseRoadmapFooter.addEventListener('click', closeRoadmap);
-
-    if (roadmapModal) {
-        roadmapModal.addEventListener('click', (e) => {
-            if (e.target === roadmapModal) closeRoadmap();
-        });
-    }
-
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && roadmapModal && roadmapModal.style.display === 'flex') {
-            closeRoadmap();
-        }
-    });
-
-    // Roadmap Tabs Filtering
-    document.querySelectorAll('.roadmap-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.roadmap-tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const phase = btn.dataset.phase;
-
-            document.querySelectorAll('.roadmap-card').forEach(card => {
-                if (phase === 'all' || card.dataset.phase === phase) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-    });
-
     console.log('%c🎭 ScenoPlan — Conception Scénographique 2D/3D', 'color: #6c8cff; font-size: 16px; font-weight: bold;');
     console.log('%cRaccourcis: F2=Plan 2D, F3=Rendu 3D, V=Sélection, H=Déplacer vue, M=Mesurer, W=Mur, Z=Zone, T=Texte, Suppr=Supprimer', 'color: #8b90a0;');
 });
