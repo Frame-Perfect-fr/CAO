@@ -1098,6 +1098,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 color: inputColor.value || '#4A607A'
             };
 
+            if (typeof engine.generateChairBlock !== 'function') {
+                alert("Le moteur du plan 2D a été mis à jour. Veuillez recharger la page avec Ctrl + F5 pour vider le cache.");
+                return;
+            }
+
             const result = engine.generateChairBlock(config);
             closeChairModal();
 
