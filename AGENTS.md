@@ -49,3 +49,22 @@ Tous les commits doivent respecter la spécification **Conventional Commits** :
    Faire une Pull Request ou fusionner dans `develop` une fois la tâche validée.
 4. **Validation Remote** :
    Ne jamais pousser sur un dépôt distant sans l'accord explicite de l'utilisateur.
+
+---
+
+### 4. Tests Automatisés & Validation Avant Fusion/Push
+
+Avant toute fusion dans `develop` et avant tout push sur GitHub, la suite de tests automatisée doit obligatoirement être exécutée et réussir à 100% :
+
+```bash
+npm test
+```
+
+#### Ce que la suite vérifie :
+1. **Syntaxe JS** (`syntax-and-structure.test.js`) : vérification syntaxique via `node --check` sur tous les fichiers sources.
+2. **Bibliothèque Mobilier** (`furniture-library.test.js`) : intégrité du catalogue (dimensions, couleurs, formes, calculs de contraste).
+3. **Moteur Canvas 2D** (`canvas-engine.test.js`) : opérations CRUD, calques, undo/redo atomique, générateur de parterre de chaises, sérialisation.
+4. **Intégrité DOM** (`dom-integrity.test.js`) : concordance stricte de tous les identifiants (`getElementById`) avec `index.html`.
+5. **Simulation Runtime Navigateur** (`browser-runtime.test.js`) : chargement complet de l'application (cycle DOMContentLoaded) et détection de toute erreur TDZ (`ReferenceError`) ou `TypeError`.
+
+Le hook local `.git/hooks/pre-push` bloque automatiquement tout push si un test échoue.
