@@ -13,7 +13,8 @@ describe('Syntaxe & Intégrité des Fichiers', () => {
             'canvas-engine.js',
             'furniture-library.js',
             'three-engine.js',
-            'package.json'
+            'package.json',
+            'favicon.svg'
         ];
         requiredFiles.forEach(file => {
             const p = path.join(rootDir, file);
@@ -47,3 +48,4 @@ describe('Syntaxe & Intégrité des Fichiers', () => {
         }, 'three-engine.js doit avoir une syntaxe JS valide');
     });
 });
+
