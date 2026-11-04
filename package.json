@@ -1,0 +1,11 @@
+{
+  "name": "scenoplan",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  }
+}
