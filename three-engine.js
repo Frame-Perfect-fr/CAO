@@ -424,6 +424,7 @@ export class ThreeEngine {
         const elements = canvasEngine.elements || [];
 
         elements.forEach(el => {
+            if (el.hidden) return;
             if (this.isZoneElement(el)) {
                 this.create3DZone(el, sceneW, sceneH);
             } else if (this.isWallElement(el)) {

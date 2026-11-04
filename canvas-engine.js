@@ -226,6 +226,7 @@ class CanvasEngine {
             this.elements.splice(idx, 1);
             this.elements.push(element);
             this.render();
+            this.notifyElementsChange();
         }
     }
 
@@ -237,7 +238,50 @@ class CanvasEngine {
             this.elements.splice(idx, 1);
             this.elements.unshift(element);
             this.render();
+            this.notifyElementsChange();
         }
+    }
+
+    moveElementLayer(element, delta) {
+        if (!element) return;
+        const idx = this.elements.indexOf(element);
+        if (idx === -1) return;
+        const newIdx = idx + delta;
+        if (newIdx < 0 || newIdx >= this.elements.length) return;
+        this.saveUndoState();
+        this.elements.splice(idx, 1);
+        this.elements.splice(newIdx, 0, element);
+        this.render();
+        this.notifyElementsChange();
+    }
+
+    setElementHidden(element, hidden) {
+        if (!element) return;
+        this.saveUndoState();
+        element.hidden = !!hidden;
+        if (element.hidden && this.selectedElement === element) {
+            this.selectElement(null);
+        }
+        this.render();
+        this.notifyElementsChange();
+    }
+
+    setElementLocked(element, locked) {
+        if (!element) return;
+        this.saveUndoState();
+        element.locked = !!locked;
+        this.render();
+        this.notifyElementsChange();
+        this.notifySelectionUpdate();
+    }
+
+    panToElement(element) {
+        if (!element) return;
+        const cx = (element.x + element.width / 2) * this.ppm;
+        const cy = (element.y + element.height / 2) * this.ppm;
+        this.panX = this.canvasWidth / 2 - cx * this.zoom;
+        this.panY = this.canvasHeight / 2 - cy * this.zoom;
+        this.render();
     }
 
     updateElement(element, props) {
@@ -254,6 +298,7 @@ class CanvasEngine {
         // Iterate in reverse (top-most first)
         for (let i = this.elements.length - 1; i >= 0; i--) {
             const el = this.elements[i];
+            if (el.hidden) continue;
             if (this.isPointInElement(sceneX, sceneY, el)) {
                 return el;
             }
@@ -1091,6 +1136,7 @@ class CanvasEngine {
         ctx.scale(this.zoom, this.zoom);
 
         for (const element of this.elements) {
+            if (element.hidden) continue;
             const isSelected = element === this.selectedElement;
             renderFurnitureOnCanvas(ctx, element, this.ppm, isSelected, this.showDimensions);
 
@@ -1367,6 +1413,7 @@ class CanvasEngine {
         ctx.translate(padding, padding);
         ctx.scale(dpr, dpr);
         for (const element of this.elements) {
+            if (element.hidden) continue;
             renderFurnitureOnCanvas(ctx, element, this.ppm, false, true);
         }
         ctx.restore();
@@ -1428,6 +1475,7 @@ class CanvasEngine {
         ctx.translate(padding, padding);
         ctx.scale(dpr, dpr);
         for (const element of this.elements) {
+            if (element.hidden) continue;
             renderFurnitureOnCanvas(ctx, element, this.ppm, false, true);
         }
         ctx.restore();

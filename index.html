@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -257,12 +257,20 @@
             </div>
         </section>
 
-        <!-- Right Sidebar: Properties -->
+        <!-- Right Sidebar: Properties & Layers -->
         <aside id="properties-panel">
-            <div class="panel-header">
-                <h2>Propriétés</h2>
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" data-tab="props" id="tab-btn-props" title="Propriétés de la sélection">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span>Propriétés</span>
+                </button>
+                <button class="sidebar-tab" data-tab="layers" id="tab-btn-layers" title="Liste des éléments et calques">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                    <span>Éléments</span>
+                    <span class="tab-badge" id="layers-badge">0</span>
+                </button>
             </div>
-            <div id="properties-content">
+            <div id="properties-content" class="sidebar-tab-content active">
                 <div class="props-empty">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
                         <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>
@@ -364,6 +372,35 @@
                             <span class="stat-value" id="stat-surface">600 m²</span>
                         </div>
                     </div>
+                </div>
+            </div>
+            <!-- Tab Calques & Liste des éléments -->
+            <div id="layers-content" class="sidebar-tab-content" style="display:none">
+                <div class="layers-header">
+                    <div class="layers-search-box">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="layers-search" placeholder="Rechercher / Filtrer..." class="layers-search-input" autocomplete="off">
+                        <button id="layers-search-clear" class="layers-search-clear" title="Effacer la recherche" style="display:none">&times;</button>
+                    </div>
+                    <div class="layers-filter-chips">
+                        <button class="layer-chip active" data-category="all">Tous</button>
+                        <button class="layer-chip" data-category="chairs">Chaises</button>
+                        <button class="layer-chip" data-category="tables">Tables</button>
+                        <button class="layer-chip" data-category="scene">Scène</button>
+                        <button class="layer-chip" data-category="tech">Tech</button>
+                        <button class="layer-chip" data-category="other">Autres</button>
+                    </div>
+                </div>
+                <div class="layers-actions-bar">
+                    <span class="layers-count-label" id="layers-visible-count">0 élément</span>
+                    <span class="layers-hint" title="Cliquez sur le nom pour le modifier en direct">✏️ Nom modifiable</span>
+                </div>
+                <div id="layers-list" class="layers-list-container">
+                    <!-- Populated dynamically -->
+                </div>
+                <div id="layers-empty-state" class="layers-empty-state" style="display:none">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                    <p>Aucun élément sur le plan</p>
                 </div>
             </div>
         </aside>
@@ -527,13 +564,13 @@
         </div>
     </div>
 
-    <script src="furniture-library.js?v=5"></script>
-    <script src="canvas-engine.js?v=5"></script>
+    <script src="furniture-library.js?v=6"></script>
+    <script src="canvas-engine.js?v=6"></script>
     <script type="module">
-        import { ThreeEngine } from './three-engine.js?v=5';
+        import { ThreeEngine } from './three-engine.js?v=6';
         window.ThreeEngine = ThreeEngine;
         window.dispatchEvent(new CustomEvent('three-engine-ready'));
     </script>
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
 </body>
 </html>
