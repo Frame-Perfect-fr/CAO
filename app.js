@@ -136,7 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
         engine.render();
     });
 
-    // ─── Properties Panel ──────────────────────────────────────────
+    // ─── Properties Panel & Layers Tab State ──────────────────────
+    let activeSidebarTab = 'props';
+    let currentLayerFilter = 'all';
+    let layerSearchQuery = '';
+    let layersListContainer = null;
+    let renderLayersList = () => {};
+    let updateLayerSelectionHighlight = () => {};
+
     const propsEmpty = document.querySelector('.props-empty');
     const propsElement = document.getElementById('props-element');
     const propsScene = document.getElementById('props-scene');
@@ -1116,15 +1123,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ─── Calques & Liste des éléments (Layers Panel) ───────────────
-    let activeSidebarTab = 'props';
-    let currentLayerFilter = 'all';
-    let layerSearchQuery = '';
-
     const tabBtnProps = document.getElementById('tab-btn-props');
     const tabBtnLayers = document.getElementById('tab-btn-layers');
     const propsContent = document.getElementById('properties-content');
     const layersContent = document.getElementById('layers-content');
-    const layersListContainer = document.getElementById('layers-list');
+    layersListContainer = document.getElementById('layers-list');
     const layersSearchInput = document.getElementById('layers-search');
     const layersSearchClear = document.getElementById('layers-search-clear');
     const layersEmptyState = document.getElementById('layers-empty-state');
@@ -1149,7 +1152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabBtnProps) tabBtnProps.addEventListener('click', () => switchSidebarTab('props'));
     if (tabBtnLayers) tabBtnLayers.addEventListener('click', () => switchSidebarTab('layers'));
 
-    function updateLayerSelectionHighlight(element) {
+    updateLayerSelectionHighlight = function(element) {
         if (!layersListContainer) return;
         const rows = layersListContainer.querySelectorAll('.layer-row');
         rows.forEach(r => {
@@ -1159,9 +1162,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 r.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             }
         });
-    }
+    };
 
-    function renderLayersList() {
+    renderLayersList = function() {
         if (!layersListContainer) return;
 
         const allElements = engine.elements || [];
