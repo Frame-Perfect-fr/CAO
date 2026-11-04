@@ -2086,14 +2086,42 @@ function renderFurnitureOnCanvas(ctx, element, ppm, selected, showDimensions) {
 
     // Draw label
     ctx.globalAlpha = 1;
-    const fontSize = Math.max(10, Math.min(14, w * 0.12));
-    ctx.font = `500 ${fontSize}px Inter, sans-serif`;
-    ctx.fillStyle = getContrastColor(fillColor);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    const isChair = element.shape === 'chair' || element.category === 'chairs' || (element.id && element.id.startsWith('chair'));
     const label = element.name || element.id;
-    if (w > 30 && h > 20) {
-        ctx.fillText(label, 0, 0, w - 8);
+
+    if (isChair) {
+        // Draw chair row/seat number directly on cushion, upright and crisp
+        if (w >= 13 && label) {
+            if (label.length <= 6 || w >= 30) {
+                const chairFontSize = Math.max(7, Math.min(12, Math.round(w * 0.35)));
+                ctx.font = `600 ${chairFontSize}px Inter, "JetBrains Mono", sans-serif`;
+                ctx.fillStyle = getContrastColor(fillColor);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Keep text upright (readable) even when chair is rotated 180° towards stage
+                let rot = ((element.rotation || 0) % 360 + 360) % 360;
+                const isUpsideDown = rot > 90 && rot <= 270;
+                const cy = h * 0.12;
+
+                ctx.save();
+                ctx.translate(0, cy);
+                if (isUpsideDown) {
+                    ctx.rotate(Math.PI);
+                }
+                ctx.fillText(label, 0, 0, w - 2);
+                ctx.restore();
+            }
+        }
+    } else {
+        const fontSize = Math.max(10, Math.min(14, w * 0.12));
+        ctx.font = `500 ${fontSize}px Inter, sans-serif`;
+        ctx.fillStyle = getContrastColor(fillColor);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (w > 26 && h > 18 && label) {
+            ctx.fillText(label, 0, 0, w - 8);
+        }
     }
 
     // Draw dimension annotations
