@@ -239,4 +239,48 @@ describe('Moteur Canvas 2D & Logique Métier', () => {
         assert.ok(csv.includes('Nomenclature Matériel'), 'En-tête présent');
         assert.ok(csv.includes('Chaise VIP') || csv.includes('chair'), 'Élément listé dans le CSV');
     });
+
+    test('Zone polygonale non rectangulaire (L-shape), hit-test, duplication et sérialisation', () => {
+        const { engine } = createEngineInstance();
+        engine.setTool('polygon-zone');
+        engine.isDrawingPolygonZone = true;
+        // L-shape: 4x4 square minus 2x2 top-right cutout => area = 16 - 4 = 12m²
+        engine.polygonPoints = [
+            { x: 2, y: 2 },
+            { x: 4, y: 2 },
+            { x: 4, y: 4 },
+            { x: 6, y: 4 },
+            { x: 6, y: 6 },
+            { x: 2, y: 6 }
+        ];
+
+        const zone = engine.finishPolygonZone();
+        assert.ok(zone, 'La zone polygonale doit être créée');
+        assert.strictEqual(zone.shape, 'polygon');
+        assert.strictEqual(zone.isZone, true);
+        assert.strictEqual(zone.x, 2);
+        assert.strictEqual(zone.y, 2);
+        assert.strictEqual(zone.width, 4);
+        assert.strictEqual(zone.height, 4);
+        assert.strictEqual(zone.points.length, 6);
+        assert.strictEqual(zone.name, 'Zone 12m²');
+
+        // Hit test inside L-shape (bottom-left) vs outside in cutout (top-right)
+        assert.strictEqual(engine.hitTest(3, 5), zone, 'Un point dans la forme en L doit toucher la zone');
+        assert.strictEqual(engine.hitTest(5, 3), null, 'Un point dans la découpe vide ne doit pas toucher la zone');
+
+        // Duplicate deep-clones points
+        const dup = engine.duplicateElement(zone);
+        assert.ok(dup, 'La duplication doit réussir');
+        assert.ok(dup.points !== zone.points, 'Les points dupliqués doivent être clonés indépendamment');
+        assert.strictEqual(dup.points.length, 6);
+
+        // Serialize / Deserialize preserves polygon points
+        const json = engine.serialize();
+        engine.clearAll();
+        assert.strictEqual(engine.deserialize(json), true);
+        assert.strictEqual(engine.elements.length, 2);
+        assert.strictEqual(engine.elements[0].shape, 'polygon');
+        assert.strictEqual(engine.elements[0].points.length, 6);
+    });
 });
