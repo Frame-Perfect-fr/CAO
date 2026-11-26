@@ -10,6 +10,16 @@ const FURNITURE_LIBRARY = {
         icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="1"/><line x1="6" y1="16" x2="6" y2="20"/><line x1="18" y1="16" x2="18" y2="20"/></svg>`,
         items: [
             {
+                id: "table-rect-160x60",
+                name: "Table 160×60",
+                width: 1.6,
+                height: 0.6,
+                color: "#8B7355",
+                shape: "rect",
+                seats: 4,
+                description: "Table rectangulaire 1.60m × 0.60m (4 personnes)"
+            },
+            {
                 id: "table-rect-6",
                 name: "Table rect. 6p",
                 width: 1.8,   // meters
