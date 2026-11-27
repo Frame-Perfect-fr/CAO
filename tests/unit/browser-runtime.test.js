@@ -1,15 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
+const { pathToFileURL } = require('url');
 
-describe('Simulation Runtime Navigateur (End-to-End)', () => {
+registerAsyncSuite(async () => {
     const rootDir = path.join(__dirname, '..', '..');
     const html = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
-    const furnitureCode = fs.readFileSync(path.join(rootDir, 'furniture-library.js'), 'utf8');
-    const canvasCode = fs.readFileSync(path.join(rootDir, 'canvas-engine.js'), 'utf8');
-    const appCode = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
 
-    // Parse all HTML elements with ID
     const idMap = new Map();
     const idRegex = /<([a-zA-Z0-9]+)[^>]*\bid=["']([^"']+)["'][^>]*>/g;
     let m;
@@ -18,7 +14,7 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
     }
 
     function createMockElement(tagName, id = '', className = '') {
-        const el = {
+        return {
             tagName: tagName.toUpperCase(),
             id,
             className,
@@ -64,12 +60,8 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
                 if (idx !== -1) this.children.splice(idx, 1);
                 return child;
             },
-            querySelectorAll(sel) {
-                return [];
-            },
-            querySelector(sel) {
-                return null;
-            },
+            querySelectorAll() { return []; },
+            querySelector() { return null; },
             getBoundingClientRect() {
                 return { left: 0, top: 0, width: 1200, height: 800 };
             },
@@ -88,7 +80,6 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
             blur() {},
             scrollIntoView() {}
         };
-        return el;
     }
 
     const elementsById = new Map();
@@ -106,10 +97,11 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
         elementsById.set(id, el);
     }
 
+    const runtimeErrors = [];
+
     const doc = {
-        getElementById(id) {
-            return elementsById.get(id) || null;
-        },
+        readyState: 'loading',
+        getElementById(id) { return elementsById.get(id) || null; },
         querySelector(sel) {
             if (sel.startsWith('#')) return this.getElementById(sel.slice(1));
             return createMockElement('div');
@@ -133,7 +125,6 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
         devicePixelRatio: 1,
         innerWidth: 1200,
         innerHeight: 800,
-        console: { log() {}, warn() {}, error(...args) { runtimeErrors.push(args.join(' ')); } },
         setTimeout: (fn) => setTimeout(fn, 0),
         clearTimeout() {},
         setInterval: () => 1,
@@ -147,87 +138,86 @@ describe('Simulation Runtime Navigateur (End-to-End)', () => {
     };
     win.window = win;
 
-    const runtimeErrors = [];
+    global.document = doc;
+    global.window = win;
+    global.getComputedStyle = win.getComputedStyle;
+    global.alert = win.alert;
+    global.prompt = win.prompt;
+    global.confirm = win.confirm;
+    global.CustomEvent = class CustomEvent { constructor(n) { this.type = n; } };
+    global.Event = class Event { constructor(n) { this.type = n; } };
 
-    const context = vm.createContext({
-        window: win,
-        document: doc,
-        getComputedStyle: win.getComputedStyle,
-        console: win.console,
-        setTimeout, clearTimeout, setInterval, clearInterval,
-        requestAnimationFrame: win.requestAnimationFrame,
-        alert: win.alert, prompt: win.prompt, confirm: win.confirm,
-        CustomEvent: class CustomEvent { constructor(n) { this.type = n; } },
-        Event: class Event { constructor(n) { this.type = n; } },
-        Math, JSON, Date, Array, Object, String, Number, Boolean, Set, Map,
-        parseInt, parseFloat, isNaN, isFinite
-    });
+    const mainUrl = pathToFileURL(path.join(rootDir, 'src', 'app', 'main.js')).href;
+    const origConsoleError = console.error;
+    console.error = (...args) => runtimeErrors.push(args.join(' '));
 
-    test('Chargement sans erreur des scripts et déclenchement DOMContentLoaded', () => {
-        assert.doesNotThrow(() => {
-            vm.runInContext(furnitureCode, context);
-            vm.runInContext(canvasCode, context);
-            vm.runInContext(appCode, context);
-            if (doc._readyCb) doc._readyCb();
-        }, 'Le démarrage complet de l application ne doit lever aucune exception');
+    await import(mainUrl);
 
-        assert.deepStrictEqual(runtimeErrors, [], `Aucune erreur console.error pendant le démarrage: ${runtimeErrors.join('; ')}`);
-    });
+    describe('Simulation Runtime Navigateur (End-to-End ESM)', () => {
+        test('Chargement sans erreur des modules ES et déclenchement DOMContentLoaded', () => {
+            assert.doesNotThrow(() => {
+                if (doc._readyCb) doc._readyCb();
+            }, 'Le démarrage complet de l application ne doit lever aucune exception');
 
-    test('Interaction avec les onglets Propriétés / Calques', () => {
-        const tabBtnLayers = doc.getElementById('tab-btn-layers');
-        const tabBtnProps = doc.getElementById('tab-btn-props');
-        assert.ok(tabBtnLayers, 'Bouton onglet calques présent');
-        assert.ok(tabBtnProps, 'Bouton onglet propriétés présent');
+            console.error = origConsoleError;
+            assert.deepStrictEqual(runtimeErrors, [], `Aucune erreur console.error pendant le démarrage: ${runtimeErrors.join('; ')}`);
+        });
 
-        assert.doesNotThrow(() => {
-            tabBtnLayers.dispatchEvent({ type: 'click' });
-            tabBtnProps.dispatchEvent({ type: 'click' });
-        }, 'La bascule entre onglets ne doit pas lever d exception');
-    });
+        test('Interaction avec les onglets Propriétés / Calques', () => {
+            const tabBtnLayers = doc.getElementById('tab-btn-layers');
+            const tabBtnProps = doc.getElementById('tab-btn-props');
+            assert.ok(tabBtnLayers, 'Bouton onglet calques présent');
+            assert.ok(tabBtnProps, 'Bouton onglet propriétés présent');
 
-    test('Déclenchement du Générateur de Parterre depuis l interface', () => {
-        const btnGenerate = doc.getElementById('btn-generate-chairs');
-        assert.ok(btnGenerate, 'Bouton générer parterre présent');
+            assert.doesNotThrow(() => {
+                tabBtnLayers.dispatchEvent({ type: 'click' });
+                tabBtnProps.dispatchEvent({ type: 'click' });
+            }, 'La bascule entre onglets ne doit pas lever d exception');
+        });
 
-        assert.doesNotThrow(() => {
-            btnGenerate.dispatchEvent({ type: 'click' });
-        }, 'Le clic sur générer parterre ne doit pas lever d exception');
-    });
+        test('Déclenchement du Générateur de Parterre depuis l interface', () => {
+            const btnGenerate = doc.getElementById('btn-generate-chairs');
+            assert.ok(btnGenerate, 'Bouton générer parterre présent');
 
-    test('Ouverture, filtrage et fermeture du Modal Nomenclature (BOM)', () => {
-        const btnBom = doc.getElementById('btn-bom-inventory');
-        const btnClose = doc.getElementById('btn-close-bom-modal');
-        const bomModal = doc.getElementById('bom-modal');
+            assert.doesNotThrow(() => {
+                btnGenerate.dispatchEvent({ type: 'click' });
+            }, 'Le clic sur générer parterre ne doit pas lever d exception');
+        });
 
-        assert.ok(btnBom, 'Bouton nomenclature BOM présent');
-        assert.ok(btnClose, 'Bouton fermeture BOM présent');
-        assert.ok(bomModal, 'Modal BOM présent');
+        test('Ouverture, filtrage et fermeture du Modal Nomenclature (BOM)', () => {
+            const btnBom = doc.getElementById('btn-bom-inventory');
+            const btnClose = doc.getElementById('btn-close-bom-modal');
+            const bomModal = doc.getElementById('bom-modal');
 
-        assert.doesNotThrow(() => {
-            btnBom.dispatchEvent({ type: 'click' });
-            assert.strictEqual(bomModal.style.display, 'flex', 'Modal BOM doit être ouvert');
+            assert.ok(btnBom, 'Bouton nomenclature BOM présent');
+            assert.ok(btnClose, 'Bouton fermeture BOM présent');
+            assert.ok(bomModal, 'Modal BOM présent');
 
-            const searchInput = doc.getElementById('bom-search');
-            if (searchInput) {
-                searchInput.value = 'Chaise';
-                searchInput.dispatchEvent({ type: 'input' });
-            }
+            assert.doesNotThrow(() => {
+                btnBom.dispatchEvent({ type: 'click' });
+                assert.strictEqual(bomModal.style.display, 'flex', 'Modal BOM doit être ouvert');
 
-            btnClose.dispatchEvent({ type: 'click' });
-            assert.strictEqual(bomModal.style.display, 'none', 'Modal BOM doit être fermé');
-        }, 'L interaction avec la nomenclature BOM ne doit pas lever d exception');
-    });
+                const searchInput = doc.getElementById('bom-search');
+                if (searchInput) {
+                    searchInput.value = 'Chaise';
+                    searchInput.dispatchEvent({ type: 'input' });
+                }
 
-    test('Boutons d export 3D (GLB) configurés', () => {
-        const btnExportGlb = doc.getElementById('btn-export-glb');
-        const btnThreeGlb = doc.getElementById('btn-three-export-glb');
-        assert.ok(btnExportGlb, 'Bouton export GLB barre supérieure présent');
-        assert.ok(btnThreeGlb, 'Bouton export GLB barre 3D présent');
+                btnClose.dispatchEvent({ type: 'click' });
+                assert.strictEqual(bomModal.style.display, 'none', 'Modal BOM doit être fermé');
+            }, 'L interaction avec la nomenclature BOM ne doit pas lever d exception');
+        });
 
-        assert.doesNotThrow(() => {
-            btnExportGlb.dispatchEvent({ type: 'click' });
-            btnThreeGlb.dispatchEvent({ type: 'click' });
-        }, 'Le clic sur export GLB ne doit pas lever d exception');
+        test('Boutons d export 3D (GLB) configurés', () => {
+            const btnExportGlb = doc.getElementById('btn-export-glb');
+            const btnThreeGlb = doc.getElementById('btn-three-export-glb');
+            assert.ok(btnExportGlb, 'Bouton export GLB barre supérieure présent');
+            assert.ok(btnThreeGlb, 'Bouton export GLB barre 3D présent');
+
+            assert.doesNotThrow(() => {
+                btnExportGlb.dispatchEvent({ type: 'click' });
+                btnThreeGlb.dispatchEvent({ type: 'click' });
+            }, 'Le clic sur export GLB ne doit pas lever d exception');
+        });
     });
 });

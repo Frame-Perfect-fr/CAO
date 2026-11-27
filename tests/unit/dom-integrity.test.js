@@ -1,17 +1,30 @@
 const fs = require('fs');
 const path = require('path');
 
+function readAllJsInDir(dir) {
+    let content = '';
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            content += readAllJsInDir(full);
+        } else if (entry.name.endsWith('.js')) {
+            content += '\n' + fs.readFileSync(full, 'utf8');
+        }
+    }
+    return content;
+}
+
 describe('Intégrité du DOM HTML & Concordance des Sélecteurs', () => {
     const rootDir = path.join(__dirname, '..', '..');
     const html = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
-    const appJs = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
-    const canvasJs = fs.readFileSync(path.join(rootDir, 'canvas-engine.js'), 'utf8');
+    const appModulesCode = readAllJsInDir(path.join(rootDir, 'src', 'app'));
+    const canvasModulesCode = readAllJsInDir(path.join(rootDir, 'src', 'canvas'));
 
-    test('Tous les document.getElementById de app.js existent dans index.html', () => {
+    test('Tous les document.getElementById des modules src/app/* existent dans index.html', () => {
         const idRegex = /getElementById\(['"]([^'"]+)['"]\)/g;
         let match;
         const missing = [];
-        while ((match = idRegex.exec(appJs)) !== null) {
+        while ((match = idRegex.exec(appModulesCode)) !== null) {
             const id = match[1];
             const p1 = `id="${id}"`;
             const p2 = `id='${id}'`;
@@ -22,11 +35,11 @@ describe('Intégrité du DOM HTML & Concordance des Sélecteurs', () => {
         assert.deepStrictEqual(missing, [], `IDs introuvables dans index.html: ${missing.join(', ')}`);
     });
 
-    test('Tous les document.getElementById de canvas-engine.js existent dans index.html', () => {
+    test('Tous les document.getElementById des modules src/canvas/* existent dans index.html', () => {
         const idRegex = /getElementById\(['"]([^'"]+)['"]\)/g;
         let match;
         const missing = [];
-        while ((match = idRegex.exec(canvasJs)) !== null) {
+        while ((match = idRegex.exec(canvasModulesCode)) !== null) {
             const id = match[1];
             const p1 = `id="${id}"`;
             const p2 = `id='${id}'`;
@@ -34,7 +47,7 @@ describe('Intégrité du DOM HTML & Concordance des Sélecteurs', () => {
                 missing.push(id);
             }
         }
-        assert.deepStrictEqual(missing, [], `IDs de canvas-engine introuvables: ${missing.join(', ')}`);
+        assert.deepStrictEqual(missing, [], `IDs de src/canvas introuvables: ${missing.join(', ')}`);
     });
 
     test('Pas d IDs dupliqués dans index.html', () => {
