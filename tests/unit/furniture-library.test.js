@@ -58,6 +58,16 @@ describe('Bibliothèque de Mobilier & Rendu 2D', () => {
         assert.strictEqual(tvSwitch.height, 0.55);
     });
 
+    test('La table 1.60m x 0.60m est bien présente dans le catalogue tables', () => {
+        const tableItems = FURNITURE_LIBRARY.tables.items;
+        const table160x60 = tableItems.find(i => i.id === 'table-rect-160x60');
+        assert.ok(table160x60, 'L élément table-rect-160x60 doit exister dans tables');
+        assert.strictEqual(table160x60.width, 1.6);
+        assert.strictEqual(table160x60.height, 0.6);
+        assert.strictEqual(table160x60.shape, 'rect');
+        assert.strictEqual(table160x60.category, 'tables');
+    });
+
     test('Fonctions utilitaires graphiques getContrastColor et adjustBrightness', () => {
         assert.strictEqual(typeof getContrastColor, 'function');
         assert.ok(getContrastColor('#000000').includes('255'), 'Noir -> texte blanc ou clair');

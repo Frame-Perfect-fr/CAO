@@ -457,6 +457,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     engine.setTool('zone');
                 }
                 break;
+            case 'p':
+                if (!ctrl) engine.setTool('polygon-zone');
+                break;
             case 'y':
                 if (ctrl) {
                     e.preventDefault();
@@ -466,9 +469,18 @@ document.addEventListener('DOMContentLoaded', () => {
             case 't':
                 engine.setTool('text');
                 break;
+            case 'enter':
+                if (engine.isDrawingPolygonZone && engine.polygonPoints.length >= 3) {
+                    e.preventDefault();
+                    engine.finishPolygonZone();
+                }
+                break;
             case 'delete':
             case 'backspace':
-                if (engine.selectedElement) {
+                if (engine.isDrawingPolygonZone && e.key.toLowerCase() === 'backspace') {
+                    e.preventDefault();
+                    engine.undoLastPolygonPoint();
+                } else if (engine.selectedElement) {
                     e.preventDefault();
                     engine.removeElement(engine.selectedElement);
                 }
@@ -1609,5 +1621,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     console.log('%c🎭 ScenoPlan — Conception Scénographique 2D/3D', 'color: #6c8cff; font-size: 16px; font-weight: bold;');
-    console.log('%cRaccourcis: F2=Plan 2D, F3=Rendu 3D, V=Sélection, H=Déplacer vue, M=Mesurer, W=Mur, Z=Zone, T=Texte, Alt+C=Parterre chaises, Suppr=Supprimer', 'color: #8b90a0;');
+    console.log('%cRaccourcis: F2=Plan 2D, F3=Rendu 3D, V=Sélection, H=Déplacer vue, M=Mesurer, W=Mur, Z=Zone, P=Zone polygonale, T=Texte, Alt+C=Parterre chaises, Suppr=Supprimer', 'color: #8b90a0;');
 });

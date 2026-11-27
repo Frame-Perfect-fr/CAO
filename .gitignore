@@ -1,6 +1,7 @@
-# Dependencies
+# Dependencies & build
 node_modules/
 package-lock.json
+dist/
 
 # OS files
 .DS_Store
@@ -11,3 +12,4 @@ desktop.ini
 *.log
 .vscode/
 .idea/
+plans/
