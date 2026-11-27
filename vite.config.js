@@ -7,10 +7,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function copyLegacyAssets() {
   const filesToCopy = [
-    'furniture-library.js',
-    'canvas-engine.js',
-    'three-engine.js',
-    'app.js',
     'style.css',
     'favicon.svg',
   ];

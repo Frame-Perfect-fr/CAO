@@ -7,7 +7,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node tests/test-runner.js",
-    "test:syntax": "node --check app.js && node --check canvas-engine.js && node --check furniture-library.js && node --check three-engine.js"
+    "test:syntax": "node -e \"const fs=require('fs'),path=require('path'),cp=require('child_process');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):e.name.endsWith('.js')?[path.join(d,e.name)]:[]);walk('src').forEach(f=>cp.execSync('node --check '+f,{stdio:'inherit'}));\""
   },
   "dependencies": {
     "three": "^0.160.0"
