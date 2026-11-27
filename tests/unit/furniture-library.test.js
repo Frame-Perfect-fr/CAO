@@ -1,80 +1,67 @@
-const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
+const { pathToFileURL } = require('url');
 
-describe('Bibliothèque de Mobilier & Rendu 2D', () => {
-    const furnitureCode = fs.readFileSync(path.join(__dirname, '..', '..', 'furniture-library.js'), 'utf8');
+registerAsyncSuite(async () => {
+    const catalogUrl = pathToFileURL(path.join(__dirname, '..', '..', 'src', 'catalog', 'index.js')).href;
+    const { FURNITURE_LIBRARY, getContrastColor, adjustBrightness } = await import(catalogUrl);
 
-    // Context execution
-    const sandbox = {
-        console,
-        Math,
-        Array,
-        Object,
-        String,
-        Number,
-        parseInt,
-        parseFloat
-    };
-    vm.createContext(sandbox);
-    const exportsObj = vm.runInContext(furnitureCode + '\n;({ FURNITURE_LIBRARY, getContrastColor, adjustBrightness })', sandbox);
-    const { FURNITURE_LIBRARY, getContrastColor, adjustBrightness } = exportsObj;
+    describe('Bibliothèque de Mobilier & Rendu 2D', () => {
+        test('FURNITURE_LIBRARY est défini avec des catégories valides', () => {
+            assert.ok(FURNITURE_LIBRARY, 'FURNITURE_LIBRARY doit être défini');
+            const categories = Object.keys(FURNITURE_LIBRARY);
+            assert.isAbove(categories.length, 3, 'Doit contenir au moins 4 catégories');
+            assert.ok(categories.includes('chairs'), 'Catégorie chairs présente');
+            assert.ok(categories.includes('tables'), 'Catégorie tables présente');
+            assert.ok(categories.includes('scene'), 'Catégorie scene présente');
+            assert.ok(categories.includes('tech'), 'Catégorie tech présente');
+        });
 
-    test('FURNITURE_LIBRARY est défini avec des catégories valides', () => {
-        assert.ok(FURNITURE_LIBRARY, 'FURNITURE_LIBRARY doit être défini');
-        const categories = Object.keys(FURNITURE_LIBRARY);
-        assert.isAbove(categories.length, 3, 'Doit contenir au moins 4 catégories');
-        assert.ok(categories.includes('chairs'), 'Catégorie chairs présente');
-        assert.ok(categories.includes('tables'), 'Catégorie tables présente');
-        assert.ok(categories.includes('scene'), 'Catégorie scene présente');
-        assert.ok(categories.includes('tech'), 'Catégorie tech présente');
-    });
+        test('Tous les éléments du catalogue ont des dimensions et formes valides', () => {
+            let totalItems = 0;
+            for (const [catKey, cat] of Object.entries(FURNITURE_LIBRARY)) {
+                assert.ok(cat.name, `Catégorie ${catKey} doit avoir un nom`);
+                assert.ok(Array.isArray(cat.items), `Catégorie ${catKey} doit contenir un tableau items`);
+                cat.items.forEach(item => {
+                    totalItems++;
+                    assert.ok(item.id, `Item ${item.id || 'sans-id'} doit avoir un id unique`);
+                    assert.ok(item.name, `Item ${item.id} doit avoir un nom`);
+                    assert.isAbove(item.width, 0, `Item ${item.id} largeur > 0`);
+                    assert.isAbove(item.height, 0, `Item ${item.id} profondeur/hauteur > 0`);
+                    assert.ok(item.shape, `Item ${item.id} doit avoir une forme (shape)`);
+                    assert.ok(item.color, `Item ${item.id} doit avoir une couleur`);
+                    assert.strictEqual(item.category, catKey, `Item ${item.id} catégorie correspond`);
+                });
+            }
+            assert.isAbove(totalItems, 20, 'Le catalogue doit compter plus de 20 éléments');
+        });
 
-    test('Tous les éléments du catalogue ont des dimensions et formes valides', () => {
-        let totalItems = 0;
-        for (const [catKey, cat] of Object.entries(FURNITURE_LIBRARY)) {
-            assert.ok(cat.name, `Catégorie ${catKey} doit avoir un nom`);
-            assert.ok(Array.isArray(cat.items), `Catégorie ${catKey} doit contenir un tableau items`);
-            cat.items.forEach(item => {
-                totalItems++;
-                assert.ok(item.id, `Item ${item.id || 'sans-id'} doit avoir un id unique`);
-                assert.ok(item.name, `Item ${item.id} doit avoir un nom`);
-                assert.isAbove(item.width, 0, `Item ${item.id} largeur > 0`);
-                assert.isAbove(item.height, 0, `Item ${item.id} profondeur/hauteur > 0`);
-                assert.ok(item.shape, `Item ${item.id} doit avoir une forme (shape)`);
-                assert.ok(item.color, `Item ${item.id} doit avoir une couleur`);
-                assert.strictEqual(item.category, catKey, `Item ${item.id} catégorie correspond`);
-            });
-        }
-        assert.isAbove(totalItems, 20, 'Le catalogue doit compter plus de 20 éléments');
-    });
+        test('Le meuble TV avec Nintendo Switch et manettes Pro est bien présent', () => {
+            const techItems = FURNITURE_LIBRARY.tech.items;
+            const tvSwitch = techItems.find(i => i.id === 'tv-stand-switch');
+            assert.ok(tvSwitch, 'L élément tv-stand-switch doit exister dans tech');
+            assert.strictEqual(tvSwitch.shape, 'tv-switch');
+            assert.strictEqual(tvSwitch.width, 1.4);
+            assert.strictEqual(tvSwitch.height, 0.55);
+        });
 
-    test('Le meuble TV avec Nintendo Switch et manettes Pro est bien présent', () => {
-        const techItems = FURNITURE_LIBRARY.tech.items;
-        const tvSwitch = techItems.find(i => i.id === 'tv-stand-switch');
-        assert.ok(tvSwitch, 'L élément tv-stand-switch doit exister dans tech');
-        assert.strictEqual(tvSwitch.shape, 'tv-switch');
-        assert.strictEqual(tvSwitch.width, 1.4);
-        assert.strictEqual(tvSwitch.height, 0.55);
-    });
+        test('La table 1.60m x 0.60m est bien présente dans le catalogue tables', () => {
+            const tableItems = FURNITURE_LIBRARY.tables.items;
+            const table160x60 = tableItems.find(i => i.id === 'table-rect-160x60');
+            assert.ok(table160x60, 'L élément table-rect-160x60 doit exister dans tables');
+            assert.strictEqual(table160x60.width, 1.6);
+            assert.strictEqual(table160x60.height, 0.6);
+            assert.strictEqual(table160x60.shape, 'rect');
+            assert.strictEqual(table160x60.category, 'tables');
+        });
 
-    test('La table 1.60m x 0.60m est bien présente dans le catalogue tables', () => {
-        const tableItems = FURNITURE_LIBRARY.tables.items;
-        const table160x60 = tableItems.find(i => i.id === 'table-rect-160x60');
-        assert.ok(table160x60, 'L élément table-rect-160x60 doit exister dans tables');
-        assert.strictEqual(table160x60.width, 1.6);
-        assert.strictEqual(table160x60.height, 0.6);
-        assert.strictEqual(table160x60.shape, 'rect');
-        assert.strictEqual(table160x60.category, 'tables');
-    });
+        test('Fonctions utilitaires graphiques getContrastColor et adjustBrightness', () => {
+            assert.strictEqual(typeof getContrastColor, 'function');
+            assert.ok(getContrastColor('#000000').includes('255'), 'Noir -> texte blanc ou clair');
+            assert.ok(getContrastColor('#FFFFFF').includes('0,0,0'), 'Blanc -> texte sombre');
 
-    test('Fonctions utilitaires graphiques getContrastColor et adjustBrightness', () => {
-        assert.strictEqual(typeof getContrastColor, 'function');
-        assert.ok(getContrastColor('#000000').includes('255'), 'Noir -> texte blanc ou clair');
-        assert.ok(getContrastColor('#FFFFFF').includes('0,0,0'), 'Blanc -> texte sombre');
-
-        assert.strictEqual(typeof adjustBrightness, 'function');
-        const brighter = adjustBrightness('#202020', 20);
-        assert.ok(brighter.startsWith('#'), 'Retourne une couleur hex');
+            assert.strictEqual(typeof adjustBrightness, 'function');
+            const brighter = adjustBrightness('#202020', 20);
+            assert.ok(brighter.startsWith('#'), 'Retourne une couleur hex');
+        });
     });
 });

@@ -10,6 +10,7 @@ let totalTests = 0;
 let passedTests = 0;
 let failedTests = 0;
 const failures = [];
+const asyncSuites = [];
 
 global.assert = {
     strictEqual(actual, expected, msg) {
@@ -56,9 +57,26 @@ global.test = function(name, fn) {
     }
 };
 
+global.testAsync = async function(name, fn) {
+    totalTests++;
+    try {
+        await fn();
+        passedTests++;
+        console.log(`  \x1b[32m✔\x1b[0m ${name}`);
+    } catch (err) {
+        failedTests++;
+        console.log(`  \x1b[31m✖\x1b[0m ${name}`);
+        failures.push({ name, error: err });
+    }
+};
+
 global.describe = function(suiteName, fn) {
     console.log(`\n\x1b[1m\x1b[36m▶ Suite: ${suiteName}\x1b[0m`);
-    fn();
+    return fn();
+};
+
+global.registerAsyncSuite = function(fn) {
+    asyncSuites.push(fn);
 };
 
 async function runAllTests() {
@@ -70,6 +88,7 @@ async function runAllTests() {
         path.join(__dirname, 'unit', 'syntax-and-structure.test.js'),
         path.join(__dirname, 'unit', 'furniture-library.test.js'),
         path.join(__dirname, 'unit', 'canvas-engine.test.js'),
+        path.join(__dirname, 'unit', 'three-instancing.test.js'),
         path.join(__dirname, 'unit', 'dom-integrity.test.js'),
         path.join(__dirname, 'unit', 'browser-runtime.test.js')
     ];
@@ -78,6 +97,10 @@ async function runAllTests() {
         if (fs.existsSync(file)) {
             require(file);
         }
+    }
+
+    for (const suiteFn of asyncSuites) {
+        await suiteFn();
     }
 
     console.log('\n\x1b[1m\x1b[35m=======================================================');
