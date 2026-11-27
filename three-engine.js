@@ -607,8 +607,24 @@ export class ThreeEngine {
         group.rotation.y = rotRad;
         group.userData = { element: el };
 
+        const isPolygon = el.shape === 'polygon' && Array.isArray(el.points) && el.points.length >= 3;
+
         // Flat translucent floor plane (depthWrite: false so objects inside are fully visible!)
-        const zoneGeo = new THREE.PlaneGeometry(el.width, el.height);
+        let zoneGeo;
+        if (isPolygon) {
+            const shape = new THREE.Shape();
+            el.points.forEach((pt, idx) => {
+                const sx = pt.x - el.width / 2;
+                const sy = -(pt.y - el.height / 2);
+                if (idx === 0) shape.moveTo(sx, sy);
+                else shape.lineTo(sx, sy);
+            });
+            shape.closePath();
+            zoneGeo = new THREE.ShapeGeometry(shape);
+        } else {
+            zoneGeo = new THREE.PlaneGeometry(el.width, el.height);
+        }
+
         const zoneMat = new THREE.MeshStandardMaterial({
             color: colorHex,
             transparent: true,
@@ -625,16 +641,23 @@ export class ThreeEngine {
         group.add(zoneMesh);
 
         // Accent border line
-        const borderGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(el.width, 0.015, el.height));
         const borderMat = new THREE.LineBasicMaterial({
             color: colorHex,
             transparent: true,
             opacity: 0.75,
             linewidth: 2
         });
-        const borderLine = new THREE.LineSegments(borderGeo, borderMat);
-        borderLine.position.y = 0.008;
-        group.add(borderLine);
+        if (isPolygon) {
+            const borderPts = el.points.map(pt => new THREE.Vector3(pt.x - el.width / 2, 0.008, pt.y - el.height / 2));
+            const borderGeo = new THREE.BufferGeometry().setFromPoints(borderPts);
+            const borderLine = new THREE.LineLoop(borderGeo, borderMat);
+            group.add(borderLine);
+        } else {
+            const borderGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(el.width, 0.015, el.height));
+            const borderLine = new THREE.LineSegments(borderGeo, borderMat);
+            borderLine.position.y = 0.008;
+            group.add(borderLine);
+        }
 
         this.zoneGroup.add(group);
     }

@@ -1661,6 +1661,26 @@ function renderFurnitureOnCanvas(ctx, element, ppm, selected, showDimensions) {
             ctx.setLineDash([]);
             break;
 
+        case "polygon":
+            if (Array.isArray(element.points) && element.points.length >= 3) {
+                ctx.fillStyle = fillColor + "40";
+                ctx.strokeStyle = selected ? '#6c8cff' : fillColor + "80";
+                ctx.lineWidth = selected ? 2 : 1.5;
+                ctx.setLineDash([6, 3]);
+                ctx.beginPath();
+                element.points.forEach((pt, idx) => {
+                    const px = pt.x * ppm - w / 2;
+                    const py = pt.y * ppm - h / 2;
+                    if (idx === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            break;
+
         case "barrier":
             ctx.fillStyle = fillColor;
             ctx.strokeStyle = strokeColor;
@@ -2130,7 +2150,12 @@ function renderFurnitureOnCanvas(ctx, element, ppm, selected, showDimensions) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (w > 26 && h > 18 && label) {
-            ctx.fillText(label, 0, 0, w - 8);
+            if (element.shape === 'polygon' && Array.isArray(element.points) && element.points.length >= 3) {
+                const c = computePolygonCentroid(element.points);
+                ctx.fillText(label, c.x * ppm - w / 2, c.y * ppm - h / 2, w - 8);
+            } else {
+                ctx.fillText(label, 0, 0, w - 8);
+            }
         }
     }
 
@@ -2143,7 +2168,11 @@ function renderFurnitureOnCanvas(ctx, element, ppm, selected, showDimensions) {
 
     // Draw selection handles
     if (selected) {
-        drawSelectionHandles(ctx, x, y, w, h, element.rotation || 0);
+        if (element.shape === 'polygon' && Array.isArray(element.points) && element.points.length >= 3) {
+            drawPolygonSelectionHandles(ctx, x, y, w, h, element.rotation || 0, element.points, ppm);
+        } else {
+            drawSelectionHandles(ctx, x, y, w, h, element.rotation || 0);
+        }
     }
 }
 
@@ -2378,6 +2407,100 @@ function drawSelectionHandles(ctx, x, y, w, h, rotation) {
     ctx.stroke();
 
     ctx.restore();
+}
+
+function drawPolygonSelectionHandles(ctx, x, y, w, h, rotation, points, ppm) {
+    const centerX = x + w / 2;
+    const centerY = y + h / 2;
+    const rad = rotation * Math.PI / 180;
+
+    ctx.save();
+
+    // Subtle bounding box dashed border
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rad);
+    ctx.strokeStyle = 'rgba(108, 140, 255, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(-w / 2 - 2, -h / 2 - 2, w + 4, h + 4);
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // Draggable vertex handles
+    points.forEach(pt => {
+        const dx = pt.x * ppm - w / 2;
+        const dy = pt.y * ppm - h / 2;
+        const rx = dx * Math.cos(rad) - dy * Math.sin(rad) + centerX;
+        const ry = dx * Math.sin(rad) + dy * Math.cos(rad) + centerY;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#6c8cff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(rx, ry, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    });
+
+    // Rotation handle
+    const rotHandleY = y - 24;
+    const rdx = 0;
+    const rdy = rotHandleY - centerY;
+    const rrx = rdx * Math.cos(rad) - rdy * Math.sin(rad) + centerX;
+    const rry = rdx * Math.sin(rad) + rdy * Math.cos(rad) + centerY;
+
+    const topCenterDy = -h / 2 - 2;
+    const tcx = -topCenterDy * Math.sin(rad) + centerX;
+    const tcy = topCenterDy * Math.cos(rad) + centerY;
+
+    ctx.strokeStyle = '#6c8cff88';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tcx, tcy);
+    ctx.lineTo(rrx, rry);
+    ctx.stroke();
+
+    ctx.fillStyle = '#6c8cff';
+    ctx.beginPath();
+    ctx.arc(rrx, rry, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+function computePolygonArea(points) {
+    if (!Array.isArray(points) || points.length < 3) return 0;
+    let area = 0;
+    for (let i = 0; i < points.length; i++) {
+        const j = (i + 1) % points.length;
+        area += points[i].x * points[j].y;
+        area -= points[j].x * points[i].y;
+    }
+    return Math.abs(area) / 2;
+}
+
+function computePolygonCentroid(points) {
+    if (!Array.isArray(points) || points.length === 0) return { x: 0, y: 0 };
+    let signedArea = 0;
+    let cx = 0;
+    let cy = 0;
+    for (let i = 0; i < points.length; i++) {
+        const j = (i + 1) % points.length;
+        const cross = points[i].x * points[j].y - points[j].x * points[i].y;
+        signedArea += cross;
+        cx += (points[i].x + points[j].x) * cross;
+        cy += (points[i].y + points[j].y) * cross;
+    }
+    signedArea *= 0.5;
+    if (Math.abs(signedArea) < 1e-6) {
+        const sum = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+        return { x: sum.x / points.length, y: sum.y / points.length };
+    }
+    return { x: cx / (6 * signedArea), y: cy / (6 * signedArea) };
 }
 
 /* ---------- Utility Functions ---------- */

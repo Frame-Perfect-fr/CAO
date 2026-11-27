@@ -597,6 +597,7 @@ html, body {
 #canvas-container.tool-measure { cursor: crosshair; }
 #canvas-container.tool-wall { cursor: crosshair; }
 #canvas-container.tool-zone { cursor: crosshair; }
+#canvas-container.tool-polygon-zone { cursor: crosshair; }
 #canvas-container.tool-text { cursor: text; }
 #canvas-container.dragging-item { cursor: grabbing; }
 

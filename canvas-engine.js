@@ -61,6 +61,13 @@ class CanvasEngine {
         this.zoneStart = null;
         this.isDrawingZone = false;
 
+        // Polygon zone tool
+        this.polygonPoints = [];
+        this.isDrawingPolygonZone = false;
+        this.polygonCursorScene = null;
+        this.isEditingVertex = false;
+        this.draggingVertexIndex = -1;
+
         // Text tool
         this.isPlacingText = false;
 
@@ -201,6 +208,9 @@ class CanvasEngine {
         if (!element) return;
         this.saveUndoState();
         const dup = { ...element, uid: this._nextId++ };
+        if (Array.isArray(element.points)) {
+            dup.points = element.points.map(p => ({ x: p.x, y: p.y }));
+        }
         dup.x += 0.5;
         dup.y += 0.5;
         this.elements.push(dup);
@@ -287,6 +297,16 @@ class CanvasEngine {
     updateElement(element, props) {
         if (!element) return;
         this.saveUndoState();
+        if (element.shape === 'polygon' && Array.isArray(element.points)) {
+            if (props.width !== undefined && element.width > 0 && props.width > 0) {
+                const sx = props.width / element.width;
+                element.points = element.points.map(p => ({ x: p.x * sx, y: p.y }));
+            }
+            if (props.height !== undefined && element.height > 0 && props.height > 0) {
+                const sy = props.height / element.height;
+                element.points = element.points.map(p => ({ x: p.x, y: p.y * sy }));
+            }
+        }
         Object.assign(element, props);
         this.render();
         this.notifyElementsChange();
@@ -323,6 +343,21 @@ class CanvasEngine {
             return (localX * localX) / (rx * rx) + (localY * localY) / (ry * ry) <= 1;
         }
 
+        if (el.shape === 'polygon' && Array.isArray(el.points) && el.points.length >= 3) {
+            const lx = localX + el.width / 2;
+            const ly = localY + el.height / 2;
+            let inside = false;
+            const pts = el.points;
+            for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+                const xi = pts[i].x, yi = pts[i].y;
+                const xj = pts[j].x, yj = pts[j].y;
+                const intersect = ((yi > ly) !== (yj > ly)) &&
+                    (lx < (xj - xi) * (ly - yi) / ((yj - yi) || 1e-9) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
         return Math.abs(localX) <= el.width / 2 && Math.abs(localY) <= el.height / 2;
     }
 
@@ -350,17 +385,6 @@ class CanvasEngine {
         const centerY = y + h / 2;
         const rad = (el.rotation || 0) * Math.PI / 180;
 
-        for (let i = 0; i < handles.length; i++) {
-            const dx = handles[i].x - centerX;
-            const dy = handles[i].y - centerY;
-            const rx = dx * Math.cos(rad) - dy * Math.sin(rad) + centerX;
-            const ry = dx * Math.sin(rad) + dy * Math.cos(rad) + centerY;
-
-            if (Math.abs(screenX - rx) <= 6 && Math.abs(screenY - ry) <= 6) {
-                return i;
-            }
-        }
-
         // Check rotation handle
         const rotY = y - 24 * this.zoom;
         const rdx = x + w / 2 - centerX;
@@ -370,6 +394,32 @@ class CanvasEngine {
 
         if (Math.sqrt((screenX - rrx) ** 2 + (screenY - rry) ** 2) <= 8) {
             return 99; // rotation handle
+        }
+
+        // Polygon vertex handles
+        if (el.shape === 'polygon' && Array.isArray(el.points) && el.points.length >= 3) {
+            for (let i = 0; i < el.points.length; i++) {
+                const pt = el.points[i];
+                const dx = pt.x * this.ppm * this.zoom - w / 2;
+                const dy = pt.y * this.ppm * this.zoom - h / 2;
+                const rx = dx * Math.cos(rad) - dy * Math.sin(rad) + centerX;
+                const ry = dx * Math.sin(rad) + dy * Math.cos(rad) + centerY;
+                if (Math.sqrt((screenX - rx) ** 2 + (screenY - ry) ** 2) <= 7) {
+                    return 1000 + i;
+                }
+            }
+            return -1;
+        }
+
+        for (let i = 0; i < handles.length; i++) {
+            const dx = handles[i].x - centerX;
+            const dy = handles[i].y - centerY;
+            const rx = dx * Math.cos(rad) - dy * Math.sin(rad) + centerX;
+            const ry = dx * Math.sin(rad) + dy * Math.cos(rad) + centerY;
+
+            if (Math.abs(screenX - rx) <= 6 && Math.abs(screenY - ry) <= 6) {
+                return i;
+            }
         }
 
         return -1;
@@ -407,6 +457,13 @@ class CanvasEngine {
                         this.dragStartX = sx;
                         this.dragStartY = sy;
                         this.saveUndoState();
+                        return;
+                    } else if (handle >= 1000) {
+                        if (!this.selectedElement.locked) {
+                            this.isEditingVertex = true;
+                            this.draggingVertexIndex = handle - 1000;
+                            this.saveUndoState();
+                        }
                         return;
                     } else if (handle >= 0) {
                         this.isResizing = true;
@@ -463,6 +520,33 @@ class CanvasEngine {
                 }
                 break;
 
+            case 'polygon-zone': {
+                const snapped = this.snapPoint(scene.x, scene.y);
+                if (!this.isDrawingPolygonZone) {
+                    this.isDrawingPolygonZone = true;
+                    this.polygonPoints = [snapped];
+                    this.polygonCursorScene = snapped;
+                    this.render();
+                } else {
+                    // Check if clicking near the first vertex to close polygon
+                    if (this.polygonPoints.length >= 3) {
+                        const firstScreen = this.sceneToScreen(this.polygonPoints[0].x, this.polygonPoints[0].y);
+                        const distPx = Math.hypot(sx - firstScreen.x, sy - firstScreen.y);
+                        if (distPx <= 12) {
+                            this.finishPolygonZone();
+                            return;
+                        }
+                    }
+                    const last = this.polygonPoints[this.polygonPoints.length - 1];
+                    if (Math.hypot(snapped.x - last.x, snapped.y - last.y) >= 0.01) {
+                        this.polygonPoints.push(snapped);
+                    }
+                    this.polygonCursorScene = snapped;
+                    this.render();
+                }
+                break;
+            }
+
             case 'text':
                 this.addTextElement(scene.x, scene.y);
                 break;
@@ -507,6 +591,11 @@ class CanvasEngine {
             return;
         }
 
+        if (this.isEditingVertex && this.selectedElement && this.draggingVertexIndex >= 0) {
+            this.performVertexMove(sx, sy);
+            return;
+        }
+
         if (this.isResizing && this.selectedElement) {
             this.performResize(sx, sy, e.shiftKey);
             return;
@@ -546,6 +635,12 @@ class CanvasEngine {
             return;
         }
 
+        if (this.isDrawingPolygonZone) {
+            this.polygonCursorScene = this.snapPoint(scene.x, scene.y);
+            this.render();
+            return;
+        }
+
         // Drop preview
         if (this.dropPreview) {
             const snapped = this.snapPoint(scene.x, scene.y);
@@ -569,6 +664,8 @@ class CanvasEngine {
                 const handle = this.hitTestHandle(sx, sy);
                 if (handle === 99) {
                     this.canvas.style.cursor = 'grab';
+                } else if (handle >= 1000) {
+                    this.canvas.style.cursor = 'pointer';
                 } else if (handle >= 0) {
                     const cursors = ['nw-resize', 'ne-resize', 'se-resize', 'sw-resize', 'n-resize', 'e-resize', 's-resize', 'w-resize'];
                     this.canvas.style.cursor = cursors[handle];
@@ -586,6 +683,13 @@ class CanvasEngine {
 
         if (this.isRotating) {
             this.isRotating = false;
+            this.notifyElementsChange();
+            return;
+        }
+
+        if (this.isEditingVertex) {
+            this.isEditingVertex = false;
+            this.draggingVertexIndex = -1;
             this.notifyElementsChange();
             return;
         }
@@ -662,6 +766,12 @@ class CanvasEngine {
     }
 
     onDblClick(e) {
+        if (this.currentTool === 'polygon-zone' && this.isDrawingPolygonZone) {
+            if (this.polygonPoints.length >= 3) {
+                this.finishPolygonZone();
+            }
+            return;
+        }
         // Double click on element to edit name
         const rect = this.canvas.getBoundingClientRect();
         const sx = e.clientX - rect.left;
@@ -906,6 +1016,266 @@ class CanvasEngine {
         this.zoneStart = null;
         this.render();
         this.notifyElementsChange();
+    }
+
+    drawPolygonZonePreview(scenePos) {
+        if (!this.polygonPoints || this.polygonPoints.length === 0) return;
+        const snapped = this.snapPoint(scenePos.x, scenePos.y);
+        const screenPts = this.polygonPoints.map(p => this.sceneToScreen(p.x, p.y));
+        const cursorScreen = this.sceneToScreen(snapped.x, snapped.y);
+
+        // Check if cursor is close to first point to close
+        let isClosing = false;
+        if (this.polygonPoints.length >= 3) {
+            const rawCursorScreen = this.sceneToScreen(scenePos.x, scenePos.y);
+            const distToFirst = Math.hypot(rawCursorScreen.x - screenPts[0].x, rawCursorScreen.y - screenPts[0].y);
+            const distSnappedToFirst = Math.hypot(cursorScreen.x - screenPts[0].x, cursorScreen.y - screenPts[0].y);
+            if (distToFirst <= 12 || distSnappedToFirst <= 12) {
+                isClosing = true;
+            }
+        }
+
+        const previewPts = isClosing ? this.polygonPoints : [...this.polygonPoints, snapped];
+        const previewScreenPts = isClosing ? screenPts : [...screenPts, cursorScreen];
+
+        this.ctx.save();
+
+        // Fill preview if at least 3 points
+        if (previewScreenPts.length >= 3) {
+            this.ctx.fillStyle = 'rgba(108, 140, 255, 0.12)';
+            this.ctx.beginPath();
+            previewScreenPts.forEach((p, idx) => {
+                if (idx === 0) this.ctx.moveTo(p.x, p.y);
+                else this.ctx.lineTo(p.x, p.y);
+            });
+            this.ctx.closePath();
+            this.ctx.fill();
+        }
+
+        // Placed segments (solid)
+        if (screenPts.length >= 2) {
+            this.ctx.strokeStyle = '#6c8cff';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            screenPts.forEach((p, idx) => {
+                if (idx === 0) this.ctx.moveTo(p.x, p.y);
+                else this.ctx.lineTo(p.x, p.y);
+            });
+            this.ctx.stroke();
+        }
+
+        // Active segment to cursor (dashed)
+        const lastPt = this.polygonPoints[this.polygonPoints.length - 1];
+        const lastScreen = screenPts[screenPts.length - 1];
+        const targetPt = isClosing ? this.polygonPoints[0] : snapped;
+        const targetScreen = isClosing ? screenPts[0] : cursorScreen;
+
+        this.ctx.strokeStyle = isClosing ? '#4ade80' : '#6c8cff';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.setLineDash([6, 4]);
+        this.ctx.beginPath();
+        this.ctx.moveTo(lastScreen.x, lastScreen.y);
+        this.ctx.lineTo(targetScreen.x, targetScreen.y);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+
+        // Segment length label
+        const segLen = Math.hypot(targetPt.x - lastPt.x, targetPt.y - lastPt.y);
+        if (segLen > 0.05) {
+            const midX = (lastScreen.x + targetScreen.x) / 2;
+            const midY = (lastScreen.y + targetScreen.y) / 2;
+            this.ctx.fillStyle = isClosing ? '#4ade80' : '#6c8cff';
+            this.ctx.font = '600 12px "JetBrains Mono", monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(`${segLen.toFixed(2)}m`, midX, midY - 10);
+        }
+
+        // Vertices
+        screenPts.forEach((p, idx) => {
+            const isFirst = idx === 0;
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, isFirst && isClosing ? 7 : 4.5, 0, Math.PI * 2);
+            this.ctx.fillStyle = isFirst && isClosing ? '#4ade80' : '#ffffff';
+            this.ctx.fill();
+            this.ctx.strokeStyle = isFirst && isClosing ? '#ffffff' : '#6c8cff';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+        });
+
+        // Live area label
+        if (previewPts.length >= 3) {
+            const area = computePolygonArea(previewPts);
+            const centroid = computePolygonCentroid(previewPts);
+            const cScreen = this.sceneToScreen(centroid.x, centroid.y);
+            this.ctx.fillStyle = '#6c8cff';
+            this.ctx.font = '600 12px "JetBrains Mono", monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(`${area.toFixed(1)} m²`, cScreen.x, cScreen.y);
+        }
+
+        // Hint banner at bottom-center of canvas
+        const hint = this.polygonPoints.length >= 3
+            ? 'Clic sur le 1er point, Double-clic ou Entrée pour fermer • Retour: annuler point • Échap: annuler'
+            : `Clic pour placer un sommet (${this.polygonPoints.length}/3 min.) • Retour: annuler point • Échap: annuler`;
+        this.ctx.font = '500 11px Inter, sans-serif';
+        const textW = this.ctx.measureText(hint).width + 20;
+        const hx = (this.canvasWidth - textW) / 2;
+        const hy = this.canvasHeight - 36;
+        this.ctx.fillStyle = 'rgba(15, 17, 23, 0.82)';
+        this.ctx.beginPath();
+        this.ctx.rect(hx, hy, textW, 24);
+        this.ctx.fill();
+        this.ctx.strokeStyle = 'rgba(108, 140, 255, 0.4)';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+        this.ctx.fillStyle = '#e2e6f0';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(hint, this.canvasWidth / 2, hy + 12);
+
+        this.ctx.restore();
+    }
+
+    finishPolygonZone() {
+        if (!this.isDrawingPolygonZone || this.polygonPoints.length < 3) {
+            this.cancelPolygonZone();
+            return null;
+        }
+
+        // Deduplicate consecutive identical/near-identical points
+        const cleaned = [];
+        for (const pt of this.polygonPoints) {
+            if (cleaned.length === 0) {
+                cleaned.push({ x: pt.x, y: pt.y });
+            } else {
+                const prev = cleaned[cleaned.length - 1];
+                if (Math.hypot(pt.x - prev.x, pt.y - prev.y) >= 0.01) {
+                    cleaned.push({ x: pt.x, y: pt.y });
+                }
+            }
+        }
+        // Check last vs first
+        if (cleaned.length >= 2) {
+            const first = cleaned[0];
+            const last = cleaned[cleaned.length - 1];
+            if (Math.hypot(last.x - first.x, last.y - first.y) < 0.01) {
+                cleaned.pop();
+            }
+        }
+
+        if (cleaned.length < 3) {
+            this.cancelPolygonZone();
+            return null;
+        }
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const p of cleaned) {
+            if (p.x < minX) minX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y > maxY) maxY = p.y;
+        }
+        const w = maxX - minX;
+        const h = maxY - minY;
+        const relPoints = cleaned.map(p => ({ x: p.x - minX, y: p.y - minY }));
+        const area = computePolygonArea(relPoints);
+
+        if ((w < 0.2 && h < 0.2) || area < 0.04) {
+            this.cancelPolygonZone();
+            return null;
+        }
+
+        const zoneElement = {
+            id: 'zone',
+            isZone: true,
+            category: 'zone',
+            name: `Zone ${area >= 10 ? area.toFixed(0) : area.toFixed(1)}m²`,
+            width: w,
+            height: h,
+            color: '#6c8cff',
+            shape: 'polygon',
+            points: relPoints,
+            x: minX,
+            y: minY,
+            rotation: 0,
+            opacity: 0.15,
+            locked: false,
+            uid: this._nextId++
+        };
+
+        this.saveUndoState();
+        this.elements.unshift(zoneElement); // Add behind
+        this.selectElement(zoneElement);
+        this.isDrawingPolygonZone = false;
+        this.polygonPoints = [];
+        this.polygonCursorScene = null;
+        this.render();
+        this.notifyElementsChange();
+        return zoneElement;
+    }
+
+    undoLastPolygonPoint() {
+        if (!this.isDrawingPolygonZone) return;
+        this.polygonPoints.pop();
+        if (this.polygonPoints.length === 0) {
+            this.isDrawingPolygonZone = false;
+            this.polygonCursorScene = null;
+        }
+        this.render();
+    }
+
+    cancelPolygonZone() {
+        this.isDrawingPolygonZone = false;
+        this.polygonPoints = [];
+        this.polygonCursorScene = null;
+        this.render();
+    }
+
+    performVertexMove(sx, sy) {
+        const el = this.selectedElement;
+        if (!el || !Array.isArray(el.points) || this.draggingVertexIndex < 0 || this.draggingVertexIndex >= el.points.length) return;
+
+        const scene = this.screenToScene(sx, sy);
+        const snapped = this.snapPoint(scene.x, scene.y);
+
+        // Convert world snapped point to element's current local top-left space
+        const oldCx = el.x + el.width / 2;
+        const oldCy = el.y + el.height / 2;
+        const rad = (el.rotation || 0) * Math.PI / 180;
+        const dx = snapped.x - oldCx;
+        const dy = snapped.y - oldCy;
+        const localX = dx * Math.cos(-rad) - dy * Math.sin(-rad) + el.width / 2;
+        const localY = dx * Math.sin(-rad) + dy * Math.cos(-rad) + el.height / 2;
+
+        el.points[this.draggingVertexIndex] = { x: localX, y: localY };
+
+        // Recompute bounding box in local space
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const p of el.points) {
+            if (p.x < minX) minX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y > maxY) maxY = p.y;
+        }
+
+        const newW = Math.max(0.1, maxX - minX);
+        const newH = Math.max(0.1, maxY - minY);
+
+        // Shift center in world space so non-dragged vertices stay fixed
+        const localCenterShiftX = (minX + newW / 2) - el.width / 2;
+        const localCenterShiftY = (minY + newH / 2) - el.height / 2;
+        const worldShiftX = localCenterShiftX * Math.cos(rad) - localCenterShiftY * Math.sin(rad);
+        const worldShiftY = localCenterShiftX * Math.sin(rad) + localCenterShiftY * Math.cos(rad);
+
+        el.points = el.points.map(p => ({ x: p.x - minX, y: p.y - minY }));
+        el.width = newW;
+        el.height = newH;
+        el.x = (oldCx + worldShiftX) - newW / 2;
+        el.y = (oldCy + worldShiftY) - newH / 2;
+
+        this.render();
+        this.notifySelectionUpdate();
     }
 
     addTextElement(x, y) {
@@ -1191,6 +1561,11 @@ class CanvasEngine {
             this.renderMeasurement(ctx);
         }
 
+        // Polygon zone preview
+        if (this.isDrawingPolygonZone && this.polygonCursorScene) {
+            this.drawPolygonZonePreview(this.polygonCursorScene);
+        }
+
         ctx.restore(); // clip
         ctx.restore(); // save
     }
@@ -1339,10 +1714,15 @@ class CanvasEngine {
         this.isMeasuring = false;
         this.isDrawingWall = false;
         this.isDrawingZone = false;
+        this.isDrawingPolygonZone = false;
+        this.isEditingVertex = false;
+        this.draggingVertexIndex = -1;
         this.measureStart = null;
         this.measureEnd = null;
         this.wallStart = null;
         this.zoneStart = null;
+        this.polygonPoints = [];
+        this.polygonCursorScene = null;
 
         document.getElementById('measure-tooltip').style.display = 'none';
 
